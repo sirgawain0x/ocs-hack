@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SpotifyAPI } from '@/lib/apis/spotify';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Test Spotify API connection
     const tracks = await SpotifyAPI.getTopGlobalTracks(5);

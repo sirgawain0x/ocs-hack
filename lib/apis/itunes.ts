@@ -8,7 +8,7 @@ export class ITunesAPI {
       if (!res.ok) return undefined;
       const data = await res.json();
       const results = Array.isArray(data?.results) ? data.results : [];
-      const match = results.find((r: any) => r?.previewUrl);
+      const match = results.find((r: unknown) => r && typeof r === 'object' && 'previewUrl' in r);
       return match?.previewUrl as string | undefined;
     } catch {
       return undefined;

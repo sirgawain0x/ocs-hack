@@ -1,4 +1,4 @@
-import type { SpotifyTrack, SpotifySearchResponse, SpotifyAuthResponse, SpotifyPlaylist, SpotifyPlaylistTrack } from '@/types/spotify';
+import type { SpotifyTrack, SpotifySearchResponse, SpotifyAuthResponse, SpotifyPlaylist } from '@/types/spotify';
 
 export class SpotifyAPI {
   private static accessToken: string | null = null;
@@ -88,7 +88,7 @@ export class SpotifyAPI {
   }
 
   // Get playlist tracks
-  static async getPlaylistTracks(playlistId: string, limit: number = 50, offset: number = 0, useUserToken: boolean = false): Promise<SpotifyPlaylistTrack[]> {
+  static async getPlaylistTracks(playlistId: string, limit: number = 50, offset: number = 0, useUserToken: boolean = false): Promise<SpotifyTrack[]> {
     try {
       const token = useUserToken ? this.userAccessToken : await this.getAccessToken();
       if (!token) {
@@ -114,7 +114,7 @@ export class SpotifyAPI {
       }
 
       const data = await response.json();
-      return data.items.map((item: any) => item.track).filter((track: SpotifyTrack) => track && track.preview_url);
+      return data.items.map((item: unknown) => (item as { track: SpotifyTrack }).track).filter((track: SpotifyTrack) => track && track.preview_url);
     } catch (error) {
       console.error('Spotify playlist tracks error:', error);
       return [];
@@ -129,7 +129,7 @@ export class SpotifyAPI {
   }
 
   // Get user's current playback state
-  static async getCurrentPlayback(): Promise<any> {
+  static async getCurrentPlayback(): Promise<unknown> {
     try {
       if (!this.userAccessToken) {
         throw new Error('User access token required for playback state');

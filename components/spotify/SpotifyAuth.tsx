@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SpotifyAPI } from '@/lib/apis/spotify';
-import { Music, User, Play, Pause, SkipForward, SkipBack } from 'lucide-react';
+import { Music, Play, Pause, SkipForward, SkipBack } from 'lucide-react';
 import type { SpotifyUser, SpotifyPlaybackState } from '@/types/spotify';
+import Image from 'next/image';
 
 interface SpotifyAuthProps {
   onAuthSuccess?: (token: string) => void;
@@ -14,9 +15,25 @@ interface SpotifyAuthProps {
   className?: string;
 }
 
+interface SpotifyPlayer {
+  disconnect: () => void;
+  resume: () => void;
+  pause: () => void;
+  nextTrack: () => void;
+  previousTrack: () => void;
+  setVolume: (volume: number) => void;
+  addListener: (event: string, callback: (data: any) => void) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  connect: () => Promise<boolean>;
+}
+
 declare global {
   interface Window {
-    Spotify: any;
+    Spotify: {
+      Player: new (config: {
+        name: string;
+        getOAuthToken: (callback: (token: string) => void) => void;
+      }) => SpotifyPlayer;
+    };
     onSpotifyWebPlaybackSDKReady: () => void;
   }
 }
@@ -26,7 +43,7 @@ export default function SpotifyAuth({ onAuthSuccess, onAuthError, className = ''
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<SpotifyUser | null>(null);
   const [playbackState, setPlaybackState] = useState<SpotifyPlaybackState | null>(null);
-  const [player, setPlayer] = useState<any>(null);
+  const [player, setPlayer] = useState<SpotifyPlayer | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
   const CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
@@ -260,10 +277,12 @@ export default function SpotifyAuth({ onAuthSuccess, onAuthError, className = ''
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center space-x-3">
               {playbackState.item.album.images[0] && (
-                <img
+                <Image
                   src={playbackState.item.album.images[0].url}
                   alt="Album cover"
                   className="w-12 h-12 rounded-md"
+                  width={48}
+                  height={48}
                 />
               )}
               <div className="flex-1 min-w-0">

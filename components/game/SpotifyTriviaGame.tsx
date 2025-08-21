@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,9 +12,9 @@ import SpotifyPlayer from '@/components/spotify/SpotifyPlayer';
 import TriviaQuestion from './TriviaQuestion';
 import GameStats from './GameStats';
 import Timer from './Timer';
-import type { TriviaQuestion as TriviaQuestionType, GameState, DifficultyLevel } from '@/types/game';
+import type { GameState, DifficultyLevel } from '@/types/game';
 import type { SpotifyTrack } from '@/types/spotify';
-import { Music, Trophy, Users, Clock, Target, Play } from 'lucide-react';
+import { Music, Trophy, Clock, Target, Play } from 'lucide-react';
 
 interface SpotifyTriviaGameProps {
   className?: string;
@@ -36,7 +36,7 @@ export default function SpotifyTriviaGame({ className = '' }: SpotifyTriviaGameP
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [questionCount, setQuestionCount] = useState(10);
   const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
+  const [_currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSpotifyAuthSuccess = useCallback((token: string) => {
@@ -267,7 +267,7 @@ export default function SpotifyTriviaGame({ className = '' }: SpotifyTriviaGameP
                 <div className="text-center p-6 bg-gray-50 rounded-lg">
                   <h3 className="text-lg font-semibold mb-2">Top Global Playlist</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Questions will be generated from Spotify's Top Global playlist featuring the most popular songs worldwide.
+                    Questions will be generated from Spotify&apos;s Top Global playlist featuring the most popular songs worldwide.
                   </p>
                   <div className="flex items-center justify-center space-x-2 text-green-600">
                     <Music className="w-4 h-4" />
@@ -394,7 +394,7 @@ export default function SpotifyTriviaGame({ className = '' }: SpotifyTriviaGameP
               Game Complete!
             </CardTitle>
             <p className="text-gray-600 text-lg">
-              Great job! Here's how you performed:
+              Great job! Here&apos;s how you performed:
             </p>
           </CardHeader>
 

@@ -1,59 +1,64 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Smartphone, Monitor } from 'lucide-react';
+import { Trophy, Target, Clock, CheckCircle } from 'lucide-react';
 
 interface GameStatsProps {
-  fps: number;
-  playerPosition?: { x: number; y: number; z: number };
-  gameScore: number;
-  isMobile: boolean;
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  averageTime: number;
+  totalScore: number;
+  maxScore: number;
   className?: string;
 }
 
 export default function GameStats({
-  fps,
-  playerPosition,
-  gameScore,
-  isMobile,
+  totalQuestions,
+  correctAnswers,
+  accuracy,
+  averageTime,
+  totalScore,
+  maxScore,
   className = '',
 }: GameStatsProps) {
   return (
-    <Card className={`fixed top-4 right-4 z-50 bg-gray-800 text-white border-gray-700 ${isMobile ? 'text-xs p-2' : 'text-sm p-3'} ${className}`}>
-      <CardContent className="p-0 space-y-1">
-        <div className="flex items-center justify-between">
-          <span>FPS:</span>
-          <Badge variant="outline" className={`ml-2 ${fps >= 30 ? 'border-green-500 text-green-400' : 'border-red-500 text-red-400'}`}>
-            {fps}
-          </Badge>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <span>Mobile:</span>
-          <div className="flex items-center ml-2">
-            {isMobile ? (
-              <Smartphone className="h-3 w-3 text-blue-400" />
-            ) : (
-              <Monitor className="h-3 w-3 text-blue-400" />
-            )}
-            <span className="ml-1 text-xs">{isMobile ? 'Yes' : 'No'}</span>
+    <Card className={`bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 ${className}`}>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="text-2xl font-bold text-gray-800">{totalScore}</div>
+            <div className="text-sm text-gray-600">Score</div>
+            <div className="text-xs text-gray-500">{maxScore} max</div>
           </div>
-        </div>
-
-        {playerPosition && (
-          <div className="text-xs">
-            <div>X: {playerPosition.x.toFixed(1)}</div>
-            <div>Y: {playerPosition.y.toFixed(1)}</div>
-            <div>Z: {playerPosition.z.toFixed(1)}</div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="text-2xl font-bold text-gray-800">{correctAnswers}</div>
+            <div className="text-sm text-gray-600">Correct</div>
+            <div className="text-xs text-gray-500">of {totalQuestions}</div>
           </div>
-        )}
-
-        <div className="flex items-center justify-between pt-1 border-t border-gray-700">
-          <span>Score:</span>
-          <Badge className="ml-2 bg-yellow-600 text-yellow-100">
-            {gameScore.toLocaleString()}
-          </Badge>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Target className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="text-2xl font-bold text-gray-800">{accuracy.toFixed(1)}%</div>
+            <div className="text-sm text-gray-600">Accuracy</div>
+          </div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Clock className="w-5 h-5 text-purple-500" />
+            </div>
+            <div className="text-2xl font-bold text-gray-800">{averageTime.toFixed(1)}s</div>
+            <div className="text-sm text-gray-600">Avg Time</div>
+          </div>
         </div>
       </CardContent>
     </Card>

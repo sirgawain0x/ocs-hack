@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { SpotifyAPI } from '@/lib/apis/spotify';
 import { Play, Pause, Volume2, VolumeX, SkipForward, SkipBack, AlertCircle } from 'lucide-react';
 import type { SpotifyTrack, SpotifyPlaybackState } from '@/types/spotify';
+import Image from 'next/image';
 
 interface SpotifyPlayerProps {
   track?: SpotifyTrack;
@@ -17,9 +18,25 @@ interface SpotifyPlayerProps {
   className?: string;
 }
 
+interface SpotifyPlayer {
+  disconnect: () => void;
+  resume: () => void;
+  pause: () => void;
+  nextTrack: () => void;
+  previousTrack: () => void;
+  setVolume: (volume: number) => void;
+  addListener: (event: string, callback: (data: any) => void) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  connect: () => Promise<boolean>;
+}
+
 declare global {
   interface Window {
-    Spotify: any;
+    Spotify: {
+      Player: new (config: {
+        name: string;
+        getOAuthToken: (callback: (token: string) => void) => void;
+      }) => SpotifyPlayer;
+    };
     onSpotifyWebPlaybackSDKReady: () => void;
   }
 }
@@ -34,12 +51,12 @@ export default function SpotifyPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null);
-  const [playbackState, setPlaybackState] = useState<SpotifyPlaybackState | null>(null);
+  const [_playbackState, setPlaybackState] = useState<SpotifyPlaybackState | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
   const [isMuted, setIsMuted] = useState(false);
-  const [player, setPlayer] = useState<any>(null);
+  const [player, setPlayer] = useState<SpotifyPlayer | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -295,10 +312,12 @@ export default function SpotifyPlayer({
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex items-center space-x-3">
               {currentTrack.album.images[0] && (
-                <img
+                <Image
                   src={currentTrack.album.images[0].url}
                   alt="Album cover"
                   className="w-12 h-12 rounded-md"
+                  width={48}
+                  height={48}
                 />
               )}
               <div className="flex-1 min-w-0">

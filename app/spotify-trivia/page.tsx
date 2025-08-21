@@ -29,7 +29,7 @@ export default function SpotifyTriviaPage() {
                 <Globe className="h-8 w-8 text-blue-500" />
               </div>
               <p className="text-gray-600">
-                Test your knowledge of the world's most popular songs
+                Test your knowledge of the world&apos;s most popular songs
               </p>
             </div>
             
@@ -48,7 +48,7 @@ export default function SpotifyTriviaPage() {
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-gray-600 text-sm">
-                Questions generated from Spotify's Top Global playlist featuring the most popular songs worldwide
+                Questions generated from Spotify&apos;s Top Global playlist featuring the most popular songs worldwide
               </p>
             </CardContent>
           </Card>

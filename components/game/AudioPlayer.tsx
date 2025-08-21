@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+
 import { Slider } from '@/components/ui/slider';
 import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export default function AudioPlayer({
         await audio.play();
         setIsPlaying(true);
         setAutoplayBlocked(false);
-      } catch (err) {
+      } catch {
         setAutoplayBlocked(true);
         // Fallback: wait for first user gesture to start playback
         const resumeOnGesture = async () => {

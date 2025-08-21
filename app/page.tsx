@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Wallet } from "@coinbase/onchainkit/wallet";
 import { useAccount } from 'wagmi';
 import { Play, RefreshCw, Trophy, Music, Sparkles, Users, Clock, Zap } from 'lucide-react';
