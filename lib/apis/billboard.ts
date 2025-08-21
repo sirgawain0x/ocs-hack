@@ -3,10 +3,23 @@ import type { BillboardTrack, BillboardChartResponse, BillboardGreatestHit, Bill
 export class BillboardAPI {
   private static readonly RAPIDAPI_HOST = process.env.RAPIDAPI_HOST || 'billboard-api2.p.rapidapi.com';
   private static readonly RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
+  
+  private static getBaseUrl(): string {
+    // For server-side requests, we need to construct the full URL
+    if (typeof window === 'undefined') {
+      // Server-side: use environment variable or default
+      return process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'http://localhost:3000';
+    }
+    // Client-side: use current origin
+    return window.location.origin;
+  }
 
   static async getHot100(): Promise<BillboardTrack[]> {
     try {
-      const response = await fetch('/api/proxy', {
+      const baseUrl = this.getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -35,7 +48,8 @@ export class BillboardAPI {
 
   static async getGreatestHits(): Promise<BillboardGreatestHit[]> {
     try {
-      const response = await fetch('/api/proxy', {
+      const baseUrl = this.getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -64,7 +78,8 @@ export class BillboardAPI {
 
   static async getBillboard200(): Promise<BillboardTrack[]> {
     try {
-      const response = await fetch('/api/proxy', {
+      const baseUrl = this.getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +122,8 @@ export class BillboardAPI {
 
       const genreSlug = genreMap[genre.toLowerCase()] || genre.toLowerCase();
       
-      const response = await fetch('/api/proxy', {
+      const baseUrl = this.getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,7 +152,8 @@ export class BillboardAPI {
 
   static async searchChartsByYear(year: number): Promise<BillboardTrack[]> {
     try {
-      const response = await fetch('/api/proxy', {
+      const baseUrl = this.getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

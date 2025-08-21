@@ -199,6 +199,81 @@ export class QuestionGenerator {
     };
   }
 
+  // New method to generate questions from Top Global playlist
+  static async generateTopGlobalQuestionSet(
+    count: number = 10,
+    difficulty: DifficultyLevel = 'medium',
+    questionTypes?: QuestionType[]
+  ): Promise<TriviaQuestion[]> {
+    const questions: TriviaQuestion[] = [];
+    const types: QuestionType[] = questionTypes || ['name-that-tune', 'artist-match', 'release-year', 'genre-classification'];
+
+    try {
+      console.log('Fetching Top Global playlist tracks...');
+      const topGlobalTracks = await SpotifyAPI.getTopGlobalTracks(count * 2);
+      console.log(`Found ${topGlobalTracks.length} tracks from Top Global playlist`);
+
+      if (topGlobalTracks.length === 0) {
+        console.log('No tracks found, falling back to Billboard API');
+        return await this.generateQuestionSet(count, difficulty, questionTypes);
+      }
+
+      // Shuffle tracks and take the requested number
+      const shuffledTracks = topGlobalTracks.sort(() => 0.5 - Math.random()).slice(0, count);
+
+      for (let i = 0; i < count && i < shuffledTracks.length; i++) {
+        const track = shuffledTracks[i]!;
+        const questionType = types[i % types.length]!;
+
+        try {
+          let question: TriviaQuestion | null = null;
+
+          switch (questionType) {
+            case 'name-that-tune':
+              question = await this.generateNameThatTuneQuestion(track, difficulty);
+              break;
+            case 'artist-match':
+              question = await this.generateArtistMatchQuestion(track, difficulty);
+              break;
+            case 'release-year':
+              question = await this.generateReleaseYearQuestion(track, difficulty);
+              break;
+            case 'genre-classification':
+              question = await this.generateGenreQuestion(track, difficulty);
+              break;
+            case 'chart-position':
+              // Skip chart position for Top Global tracks as we don't have Billboard data
+              continue;
+          }
+
+          if (question) {
+            questions.push(question);
+            console.log(`Generated ${questionType} question for: ${track.name} by ${track.artists[0]?.name}`);
+          }
+        } catch (error: unknown) {
+          console.error(`Error generating question for ${track.name}:`, error);
+          continue;
+        }
+
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } catch (error) {
+      console.error('Error generating Top Global question set:', error);
+      // Fallback to Billboard API
+      return await this.generateQuestionSet(count, difficulty, questionTypes);
+    }
+
+    // Fallback: if we could not build enough questions, pad with local questions
+    if (questions.length < count) {
+      const missing = count - questions.length;
+      const fallback = this.generateLocalFallbackQuestions(missing, difficulty);
+      questions.push(...fallback);
+    }
+
+    return questions;
+  }
+
   static async generateQuestionSet(
     count: number = 10,
     difficulty: DifficultyLevel = 'medium',

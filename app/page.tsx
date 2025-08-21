@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Wallet } from "@coinbase/onchainkit/wallet";
 import { useAccount } from 'wagmi';
 import { Play, RefreshCw, Trophy, Music, Sparkles, Users, Clock, Zap } from 'lucide-react';
+import Link from 'next/link';
 import TriviaQuestionComponent from '@/components/game/TriviaQuestion';
 import type { TriviaQuestion as TriviaQuestionType } from '@/types/game';
 
@@ -433,6 +434,16 @@ export default function Page() {
                 <Users className="h-5 w-5" />
                 <span>Global leaderboard</span>
               </div>
+            </div>
+            
+            {/* Spotify Trivia Link */}
+            <div className="mt-6">
+              <Link href="/spotify-trivia">
+                <Button className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3">
+                  <Music className="w-5 h-5 mr-2" />
+                  Try Spotify Top Global Trivia
+                </Button>
+              </Link>
             </div>
           </div>
 
