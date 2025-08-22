@@ -189,7 +189,7 @@ export default function Game() {
                           ? index === currentQuestion.correctAnswer 
                             ? '✅ CORRECT!' 
                             : '❌ INCORRECT'
-                          : 'BY ARTIST'
+                          : 'IS PLAYING'
                         }
                       </p>
                     </div>
@@ -199,9 +199,11 @@ export default function Game() {
             ))}
           </div>
           
-          {/* Logo */}
-          <div className="absolute h-3.5 left-6 top-[29px] w-[92px]" data-name="Vector" data-node-id="3:455">
-            <Image alt="logo" className="block max-w-none size-full" src={ASSETS.vectorGame} width={92} height={14} />
+          {/* BEATME Title with Audiowide Font */}
+          <div className="absolute left-6 top-[29px] w-[92px] h-3.5 flex items-center" data-name="BEATME Title" data-node-id="3:455">
+            <h1 className="text-white text-lg font-audiowide tracking-wider">
+              BEATME
+            </h1>
           </div>
           
           {/* Next Question Button - shown after answering */}

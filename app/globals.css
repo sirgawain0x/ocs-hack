@@ -7,6 +7,11 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Audiowide font utility class */
+  .font-audiowide {
+    font-family: "Audiowide", cursive;
+  }
 }
 
 

@@ -329,8 +329,10 @@ export default function Home() {
           </div>
         </div>
         <div className="absolute content-stretch flex flex-col gap-[19px] items-center justify-start left-1/2 top-[94px] translate-x-[-50%] w-[185px]" data-node-id="3:327">
-          <div className="h-7 relative shrink-0 w-[185px]" data-name="Vector" data-node-id="3:273">
-            <Image alt="logo" className="block max-w-none size-full" src={ASSETS.vectorHome} width={185} height={28} />
+          <div className="h-7 relative shrink-0 w-[185px] flex items-center justify-center" data-name="BEATME Title" data-node-id="3:273">
+            <h1 className="text-white text-4xl font-audiowide tracking-wider">
+              BEATME
+            </h1>
           </div>
           <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#ffffff] text-[12px] text-center w-[130px]" data-node-id="3:266">
             <p className="leading-[normal]">Name that tune, win your reward.</p>

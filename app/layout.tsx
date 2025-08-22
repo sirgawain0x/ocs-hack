@@ -41,6 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet" />
+      </head>
       <body className={`${inter.variable} ${sourceCodePro.variable} min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50`}>
         <RootProvider>{children}</RootProvider>
       </body>
