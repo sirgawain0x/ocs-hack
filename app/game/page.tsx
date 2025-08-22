@@ -51,7 +51,14 @@ export default function Game() {
         throw new Error('No questions available');
       }
 
-      setCurrentQuestion(data.questions[0]!);
+      const question = data.questions[0]!;
+      console.log('🎵 Loaded question:', {
+        audioUrl: question.audioUrl,
+        songTitle: question.metadata?.songTitle,
+        artistName: question.metadata?.artistName
+      });
+
+      setCurrentQuestion(question);
     } catch (e) {
       console.error('❌ Error loading question:', e);
       setError(e instanceof Error ? e.message : 'Failed to load question');
@@ -121,9 +128,9 @@ export default function Game() {
       <div className="relative w-full max-w-[390px] md:max-w-[428px]">
         <div className="bg-[#000000] overflow-visible relative rounded-3xl min-h-[844px] w-full" data-name="game" data-node-id="3:328">
           {/* Voice/Music Icon */}
-          <div className="absolute left-[29px] size-[336px] top-[50px]" data-name="noun-voice-7962361 1" data-node-id="3:417">
+          {/* <div className="absolute left-[29px] size-[336px] top-[50px]" data-name="noun-voice-7962361 1" data-node-id="3:417">
             <Image alt="music icon" className="block max-w-none size-full" src={imgNounVoice79623611} width={336} height={336} />
-          </div>
+          </div> */}
           
           {/* Leave Room Button */}
           <div className="absolute bg-[#32353d] box-border content-stretch flex gap-2.5 items-center justify-center left-[262px] p-[10px] rounded-lg top-[18px] cursor-pointer hover:bg-[#404550] transition-colors" data-node-id="3:458" role="button" tabIndex={0} aria-label="Leave room and return home" onClick={handleLeaveRoom} onKeyDown={handleLeaveRoomKeyDown}>
@@ -136,11 +143,27 @@ export default function Game() {
           {currentQuestion?.audioUrl && (
             <div className="absolute left-[29px] top-[400px] w-[336px]">
               <AudioPlayer 
+                key={currentQuestion.audioUrl}
                 audioUrl={currentQuestion.audioUrl}
                 autoPlay={true}
                 clipDurationSeconds={10}
                 className="bg-transparent border-0 shadow-none"
               />
+            </div>
+          )}
+          
+          {/* Audio Error Fallback */}
+          {currentQuestion && !currentQuestion.audioUrl && (
+            <div className="absolute left-[29px] top-[400px] w-[336px] h-20 flex items-center justify-center bg-gray-800 rounded-lg">
+              <div className="text-white text-center">
+                <div className="text-sm text-gray-400">Audio not available</div>
+                <button 
+                  onClick={loadRandomQuestion}
+                  className="text-xs text-blue-400 hover:text-blue-300 mt-1 underline"
+                >
+                  Try different song
+                </button>
+              </div>
             </div>
           )}
           

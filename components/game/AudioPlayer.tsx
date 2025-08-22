@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-
 import { Slider } from '@/components/ui/slider';
-import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, AlertCircle } from 'lucide-react';
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -30,6 +29,8 @@ export default function AudioPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.7);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -50,16 +51,35 @@ export default function AudioPlayer({
       const effective = Math.max(0, total - clipStartSeconds);
       setDuration(Math.max(0, Math.min(clipDurationSeconds, effective || clipDurationSeconds)));
     };
+
     const handleEnded = (): void => {
       setIsPlaying(false);
       onEnded?.();
     };
+
+    const handleLoadedData = (): void => {
+      setIsLoading(false);
+      setHasError(false);
+      audio.currentTime = clipStartSeconds;
+      handleDurationChange();
+      if (autoPlay) {
+        void tryAutoplay();
+      }
+    };
+
+    const handleError = (): void => {
+      setIsLoading(false);
+      setHasError(true);
+      console.error('Audio failed to load:', audioUrl);
+    };
+
     const tryAutoplay = async (): Promise<void> => {
       try {
         await audio.play();
         setIsPlaying(true);
         setAutoplayBlocked(false);
-      } catch {
+      } catch (error) {
+        console.warn('Autoplay blocked:', error);
         setAutoplayBlocked(true);
         // Fallback: wait for first user gesture to start playback
         const resumeOnGesture = async () => {
@@ -72,14 +92,7 @@ export default function AudioPlayer({
         const onceOpts: AddEventListenerOptions | boolean = { once: true } as AddEventListenerOptions;
         window.addEventListener('pointerdown', resumeOnGesture, onceOpts);
         window.addEventListener('touchstart', resumeOnGesture, onceOpts);
-      }
-    };
-
-    const handleLoadedData = (): void => {
-      audio.currentTime = clipStartSeconds;
-      handleDurationChange();
-      if (autoPlay) {
-        void tryAutoplay();
+        window.addEventListener('keydown', resumeOnGesture, onceOpts);
       }
     };
 
@@ -87,18 +100,20 @@ export default function AudioPlayer({
     audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('error', handleError);
     };
   }, [audioUrl, autoPlay, onEnded, clipDurationSeconds, clipStartSeconds]);
 
   const togglePlayPause = (): void => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || hasError) return;
 
     if (isPlaying) {
       audio.pause();
@@ -110,7 +125,8 @@ export default function AudioPlayer({
           setIsPlaying(true);
           setAutoplayBlocked(false);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Failed to play audio:', error);
           setAutoplayBlocked(true);
         });
     }
@@ -157,6 +173,15 @@ export default function AudioPlayer({
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  if (hasError) {
+    return (
+      <div className={`${className} flex items-center justify-center p-4 bg-red-50 border border-red-200 rounded-lg`}>
+        <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+        <span className="text-red-700 text-sm">Audio file not found</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`${className}`}>
       <audio
@@ -174,8 +199,11 @@ export default function AudioPlayer({
           variant="outline"
           size="icon"
           className="w-12 h-12 rounded-full bg-white hover:bg-gray-50"
+          disabled={isLoading || hasError}
         >
-          {isPlaying ? (
+          {isLoading ? (
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+          ) : isPlaying ? (
             <Pause className="h-6 w-6" />
           ) : (
             <Play className="h-6 w-6 ml-1" />
@@ -188,6 +216,7 @@ export default function AudioPlayer({
             value={[progressPercentage]}
             onValueChange={handleSeek}
             className="w-full"
+            disabled={isLoading || hasError}
           />
           <div className="flex justify-between text-sm text-white mt-1">
             <span>{formatTime(currentTime)}</span>
@@ -205,6 +234,7 @@ export default function AudioPlayer({
             variant="ghost"
             size="icon"
             className="w-8 h-8 text-white hover:bg-white/10"
+            disabled={isLoading || hasError}
           >
             {isMuted || volume === 0 ? (
               <VolumeX className="h-4 w-4" />
@@ -216,6 +246,7 @@ export default function AudioPlayer({
             value={[Math.round(volume * 100)]}
             onValueChange={handleVolumeChange}
             className="w-full"
+            disabled={isLoading || hasError}
           />
         </div>
       </div>
