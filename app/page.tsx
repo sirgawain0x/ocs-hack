@@ -28,7 +28,7 @@ export default function Home() {
             <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#000000] text-[24px] w-[294px]" data-node-id="3:157">
               <p className="leading-[normal]">{`100 USDC TOTAL `}</p>
             </div>
-            <div className="content-stretch flex gap-3 items-center justify-start relative shrink-0 w-full" data-node-id="3:161">
+            <div className="content-stretch flex gap-4 items-center justify-start relative shrink-0 w-full" data-node-id="3:161">
               <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#000000] text-[8px] text-nowrap" data-node-id="3:159">
                 <p className="leading-[normal] whitespace-pre">JESSE.BASE.ETH 30 OTHER PLAYERS ARE PLAYING</p>
               </div>

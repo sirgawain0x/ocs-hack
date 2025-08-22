@@ -14,20 +14,20 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "Codebase Chat Builder",
-  description: "Effortlessly generate a codebase from any discussion. Transform ideas into action with our intuitive app that turns conversations into structured projects.",
+  title: "BEATME",
+  description: "Name that tune, win your reward",
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
       imageUrl: "https://usdozf7pplhxfvrl.public.blob.vercel-storage.com/thumbnail_71c11dee-b398-4ff8-9e06-6a78958cd5cc-RUsgkllNAu2j9Yd4GgqronDXhWL88r",
       button: {
-        title: "Open with Ohara",
+        title: "Drop the Beat",
         action: {
           type: "launch_frame",
-          name: "Codebase Chat Builder",
-          url: "https://ordinary-single-174.preview.series.engineering",
+          name: "BEATME",
+          url: "https://beatme.creativeplatform.xyz",
           splashImageUrl: "https://usdozf7pplhxfvrl.public.blob.vercel-storage.com/farcaster/splash_images/splash_image1.svg",
-          splashBackgroundColor: "#ffffff"
+          splashBackgroundColor: "#000000"
         }
       }
     })

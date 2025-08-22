@@ -121,7 +121,7 @@ export default function Game() {
   }
 
   return (
-    <div className="bg-[#000000] min-h-screen w-full flex items-start justify-center px-4 py-8 overflow-x-hidden">
+    <div className="bg-[#000000] min-h-screen w-full flex items-start justify-center px-4 py-4 overflow-x-hidden">
       <div className="relative w-full max-w-[390px] md:max-w-[428px]">
         <div className="bg-[#000000] overflow-visible relative rounded-3xl min-h-[1100px] w-full" data-name="game" data-node-id="3:328">
           {/* Voice/Music Icon */}
@@ -138,7 +138,7 @@ export default function Game() {
 
           {/* Audio Player - positioned where the waveform would be */}
           {currentQuestion?.audioUrl && (
-            <div className="absolute left-[29px] top-[400px] w-[336px]">
+            <div className="absolute left-[29px] top-[200px] w-[336px]">
               <AudioPlayer 
                 key={currentQuestion.audioUrl}
                 audioUrl={currentQuestion.audioUrl}
@@ -151,7 +151,7 @@ export default function Game() {
           
           {/* Audio Error Fallback */}
           {currentQuestion && !currentQuestion.audioUrl && (
-            <div className="absolute left-[29px] top-[400px] w-[336px] h-20 flex items-center justify-center bg-gray-800 rounded-lg">
+            <div className="absolute left-[29px] top-[200px] w-[336px] h-20 flex items-center justify-center bg-gray-800 rounded-lg">
               <div className="text-white text-center">
                 <div className="text-sm text-gray-400">Audio not available</div>
                 <button 
@@ -165,7 +165,7 @@ export default function Game() {
           )}
           
           {/* Answer Options */}
-          <div className="absolute content-stretch flex flex-col gap-2 items-start justify-start left-6 top-[600px] w-[345px]" data-node-id="3:442">
+          <div className="absolute content-stretch flex flex-col gap-2 items-start justify-start left-6 top-[400px] w-[345px]" data-node-id="3:442">
             {currentQuestion?.options.map((option, index) => (
               <div 
                 key={index}
@@ -206,7 +206,7 @@ export default function Game() {
           
           {/* Next Question Button - shown after answering */}
           {isAnswered && (
-            <div className="absolute left-6 top-[950px] w-[345px]">
+            <div className="absolute left-6 top-[750px] w-[345px]">
               <button
                 onClick={handleNextQuestion}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
@@ -217,16 +217,16 @@ export default function Game() {
           )}
           
           {/* Rewards Section */}
-          <div className="absolute font-['Audiowide:Regular',_sans-serif] leading-[0] left-[159px] not-italic text-[#ffffff] text-[12px] text-center text-nowrap top-[1048px] translate-x-[-50%]" data-node-id="3:465">
+          <div className="absolute font-['Audiowide:Regular',_sans-serif] leading-[0] left-[159px] not-italic text-[#ffffff] text-[12px] text-center text-nowrap top-[848px] translate-x-[-50%]" data-node-id="3:465">
             <p className="leading-[normal] whitespace-pre">YOUR REWARDS THIS ROUND: {score} USDC</p>
           </div>
           
-          <div className="absolute font-['Audiowide:Regular',_sans-serif] leading-[0] left-[75.5px] not-italic text-[#ffffff] text-[12px] text-center text-nowrap top-[1020px] translate-x-[-50%]" data-node-id="7:3">
+          <div className="absolute font-['Audiowide:Regular',_sans-serif] leading-[0] left-[75.5px] not-italic text-[#ffffff] text-[12px] text-center text-nowrap top-[820px] translate-x-[-50%]" data-node-id="7:3">
             <p className="leading-[normal] whitespace-pre">IN THIS ROUND</p>
           </div>
           
           {/* Player Icons */}
-          <div className="absolute box-border content-stretch flex items-center justify-start left-36 pl-0 pr-2 py-0 top-[1018px]" data-node-id="7:7">
+          <div className="absolute box-border content-stretch flex items-center justify-start left-36 pl-0 pr-2 py-0 top-[818px]" data-node-id="7:7">
             <div className="mr-[-8px] relative shrink-0 size-5" data-node-id="7:4">
               <Image alt="player" className="block max-w-none size-full" height="20" src={ASSETS.ellipse14} width="20" />
             </div>
