@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseStorage } from '@/lib/apis/supabase';
 import type { DifficultyLevel } from '@/types/game';
-import fs from 'fs';
-import path from 'path';
 
 type Mode = 'name-that-tune' | 'artist-match';
 
@@ -38,38 +36,38 @@ const getTimeLimit = (difficulty: DifficultyLevel): number => {
   }
 };
 
-// Fallback audio files from public directory
+// Static list of available audio files to avoid bundling large files
 const getLocalAudioFiles = (): Array<{ name: string; path: string; artistName: string; songTitle: string }> => {
-  try {
-    const musicDir = path.join(process.cwd(), 'public', 'music');
-    
-    if (!fs.existsSync(musicDir)) {
-      console.error('❌ Music directory does not exist:', musicDir);
-      return [];
-    }
-    
-    const allFiles = fs.readdirSync(musicDir);
-    const files = allFiles.filter(file => 
-      file.endsWith('.mp3') && !file.startsWith('.')
-    );
-    
-    return files.map(file => {
-      const base = file.replace('.mp3', '');
-      const parts = base.split(' - ');
-      const artistName = parts.length >= 2 ? parts[0]!.trim() : 'Unknown Artist';
-      const songTitle = parts.length >= 2 ? parts.slice(1).join(' - ').trim() : base;
-      
-      return {
-        name: file,
-        path: `/music/${file}`,
-        artistName,
-        songTitle
-      };
-    });
-  } catch (error) {
-    console.error('❌ Error reading local audio files:', error);
-    return [];
-  }
+  // Static list of available songs - this prevents bundling large audio files
+  const availableSongs = [
+    { name: "Drake - God's Plan.mp3", artistName: "Drake", songTitle: "God's Plan" },
+    { name: "Ed Sheeran - Shape of You.mp3", artistName: "Ed Sheeran", songTitle: "Shape of You" },
+    { name: "Post Malone - Rockstar.mp3", artistName: "Post Malone", songTitle: "Rockstar" },
+    { name: "Camila Cabello - Havana.mp3", artistName: "Camila Cabello", songTitle: "Havana" },
+    { name: "Bruno Mars - That's What I Like.mp3", artistName: "Bruno Mars", songTitle: "That's What I Like" },
+    { name: "The Weeknd - Starboy.mp3", artistName: "The Weeknd", songTitle: "Starboy" },
+    { name: "Kendrick Lamar - HUMBLE..mp3", artistName: "Kendrick Lamar", songTitle: "HUMBLE." },
+    { name: "Luis Fonsi - Despacito.mp3", artistName: "Luis Fonsi", songTitle: "Despacito" },
+    { name: "Imagine Dragons - Believer.mp3", artistName: "Imagine Dragons", songTitle: "Believer" },
+    { name: "Maroon 5 - Sugar.mp3", artistName: "Maroon 5", songTitle: "Sugar" },
+    { name: "Adele - Hello.mp3", artistName: "Adele", songTitle: "Hello" },
+    { name: "Justin Bieber - Sorry.mp3", artistName: "Justin Bieber", songTitle: "Sorry" },
+    { name: "Rihanna - Work.mp3", artistName: "Rihanna", songTitle: "Work" },
+    { name: "The Chainsmokers - Closer.mp3", artistName: "The Chainsmokers", songTitle: "Closer" },
+    { name: "Twenty One Pilots - Stressed Out.mp3", artistName: "Twenty One Pilots", songTitle: "Stressed Out" },
+    { name: "Sia - Cheap Thrills.mp3", artistName: "Sia", songTitle: "Cheap Thrills" },
+    { name: "Calvin Harris - This Is What You Came For.mp3", artistName: "Calvin Harris", songTitle: "This Is What You Came For" },
+    { name: "Major Lazer - Lean On.mp3", artistName: "Major Lazer", songTitle: "Lean On" },
+    { name: "Fetty Wap - Trap Queen.mp3", artistName: "Fetty Wap", songTitle: "Trap Queen" },
+    { name: "Wiz Khalifa - See You Again.mp3", artistName: "Wiz Khalifa", songTitle: "See You Again" }
+  ];
+  
+  return availableSongs.map(song => ({
+    name: song.name,
+    path: `/music/${song.name}`,
+    artistName: song.artistName,
+    songTitle: song.songTitle
+  }));
 };
 
 export async function GET(req: NextRequest) {
