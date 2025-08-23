@@ -24,7 +24,7 @@ export default function AudioPlayer({
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.7);
@@ -37,8 +37,7 @@ export default function AudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
-    // iOS: ensure element reflects initial state for autoplay policy
-    audio.muted = true;
+    // Ensure appropriate preload for quickest start
     audio.preload = 'auto';
 
     const handleTimeUpdate = (): void => {
@@ -105,9 +104,6 @@ export default function AudioPlayer({
             await audio.play();
             setIsPlaying(true);
             setAutoplayBlocked(false);
-            // Unmute on explicit gesture to comply with iOS policy
-            audio.muted = false;
-            setIsMuted(false);
           } catch {}
         };
         const onceOpts: AddEventListenerOptions | boolean = { once: true } as AddEventListenerOptions;
@@ -151,7 +147,7 @@ export default function AudioPlayer({
       .then(() => {
         setIsPlaying(true);
         setAutoplayBlocked(false);
-        // If user explicitly plays, unmute
+        // If user explicitly plays, ensure unmuted
         if (audio.muted) {
           audio.muted = false;
           setIsMuted(false);
@@ -227,7 +223,6 @@ export default function AudioPlayer({
         src={audioUrl}
         preload="auto"
         playsInline
-        muted
       />
       
       <div className="flex items-center space-x-4">
