@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Source_Code_Pro } from "next/font/google";
 import localFont from "next/font/local";
 import { RootProvider } from "./rootProvider";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 
 const inter = Inter({
@@ -51,6 +52,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${sourceCodePro.variable} ${audiowide.variable} min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50`}>
         <RootProvider>{children}</RootProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
