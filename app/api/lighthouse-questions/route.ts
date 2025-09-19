@@ -99,6 +99,63 @@ export async function GET(req: NextRequest) {
     const choices = Math.max(2, Math.min(6, parseInt(searchParams.get('choices') || '4', 10)));
     const difficulty = (searchParams.get('difficulty') as DifficultyLevel) || 'medium';
 
+    // Check for bls-eth-wasm module availability
+    try {
+      await import('bls-eth-wasm');
+    } catch (blsError) {
+      console.warn('⚠️ bls-eth-wasm module not available, falling back to local files:', blsError instanceof Error ? blsError.message : String(blsError));
+      // Fallback to local files immediately
+      const files = getLocalAudioFiles();
+      
+      if (files.length < choices) {
+        return NextResponse.json({ 
+          error: `Not enough tracks (${files.length}) to build ${choices} choices` 
+        }, { status: 400 });
+      }
+
+      const questions = [];
+      const bag = shuffle(files);
+
+      for (let i = 0; i < count && i < bag.length; i++) {
+        const correct = bag[i]!;
+        const pool = files.filter(f => f.name !== correct.name);
+
+        const correctText = mode === 'name-that-tune' ? correct.songTitle : correct.artistName;
+        const distractorPool = mode === 'name-that-tune' 
+          ? pool.map(p => p.songTitle) 
+          : pool.map(p => p.artistName);
+
+        const distractors = shuffle(
+          unique(distractorPool.filter(x => x.toLowerCase() !== correctText.toLowerCase()))
+        ).slice(0, Math.max(0, choices - 1));
+
+        const options = shuffle([correctText, ...distractors]).slice(0, choices);
+        const correctIndex = options.indexOf(correctText);
+
+        let audioUrl: string;
+        audioUrl = correct.path;
+
+        questions.push({
+          id: `lh_fallback_${Date.now()}_${i}`,
+          type: mode,
+          question: mode === 'name-that-tune' 
+            ? 'What song is this?' 
+            : `Who performs "${correct.songTitle}"?`,
+          options,
+          correctAnswer: correctIndex >= 0 ? correctIndex : 0,
+          audioUrl,
+          artistName: correct.artistName,
+          songTitle: correct.songTitle
+        });
+      }
+
+      return NextResponse.json({ 
+        questions, 
+        source: 'local-fallback',
+        message: 'Lighthouse unavailable, using local files'
+      });
+    }
+
     const prefix = folder;
 
     console.log(`🚀 Fetching questions from Lighthouse: folder=${folder}, mode=${mode}, count=${count}`);

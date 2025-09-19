@@ -53,6 +53,7 @@
     "@types/uuid": "^10.0.0",
     "@vercel/speed-insights": "^1.2.0",
     "autoprefixer": "^10.4.21",
+    "bls-eth-wasm": "^0.4.8",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "embla-carousel-react": "^8.6.0",

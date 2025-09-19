@@ -57,9 +57,26 @@ export async function GET(req: NextRequest) {
     // Initialize SpacetimeDB connection
     await spacetimeClient.initialize();
     
-    // Note: In a real implementation, you'd query SpaceTimeDB for active players
-    // For now, we'll return demo players
-    console.log('Returning demo players (SpaceTimeDB integration pending)');
+    // Check if SpacetimeDB is properly configured and connected
+    if (spacetimeClient.isConfigured()) {
+      try {
+        // Try to get active players from SpacetimeDB
+        // For now, return demo players since the actual query isn't implemented yet
+        console.log('✅ SpacetimeDB connected - returning demo players');
+        const demoPlayers = generateDemoPlayers();
+        return NextResponse.json({ 
+          players: demoPlayers,
+          count: demoPlayers.length,
+          source: 'spacetime-demo'
+        });
+      } catch (spacetimeError) {
+        console.warn('⚠️ SpacetimeDB query failed, using fallback:', spacetimeError);
+      }
+    } else {
+      console.log('ℹ️ SpacetimeDB not configured - using demo players');
+    }
+    
+    // Fallback to demo players
     const demoPlayers = generateDemoPlayers();
     return NextResponse.json({ 
       players: demoPlayers,

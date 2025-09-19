@@ -19,23 +19,34 @@ export async function GET() {
   // Attempt SpacetimeDB first; if it fails, fall back to memory session
   try {
     await spacetimeClient.initialize();
-    const activeSession = await spacetimeClient.getActiveGameSession();
+    
+    // Check if SpacetimeDB is properly configured and connected
+    if (spacetimeClient.isConfigured()) {
+      try {
+        const activeSession = await spacetimeClient.getActiveGameSession();
 
-    if (activeSession) {
-      const now = Date.now();
-      const elapsed = Math.floor((now - activeSession.start_time) / 1000);
-      const timeRemaining = Math.max(0, 300 - elapsed);
-      // Fix: Allow joining when there are no paid players, regardless of time remaining
-      const canJoin = activeSession.paid_player_count === 0 || timeRemaining > 0;
-      return NextResponse.json({ 
-        session: activeSession, 
-        timeRemaining, 
-        canJoin,
-        waitingForPaidPlayer: activeSession.paid_player_count === 0 
-      });
+        if (activeSession) {
+          const now = Date.now();
+          const elapsed = Math.floor((now - activeSession.start_time) / 1000);
+          const timeRemaining = Math.max(0, 300 - elapsed);
+          // Fix: Allow joining when there are no paid players, regardless of time remaining
+          const canJoin = activeSession.paid_player_count === 0 || timeRemaining > 0;
+          return NextResponse.json({ 
+            session: activeSession, 
+            timeRemaining, 
+            canJoin,
+            waitingForPaidPlayer: activeSession.paid_player_count === 0,
+            source: 'spacetime'
+          });
+        }
+      } catch (spacetimeError) {
+        console.warn('⚠️ SpacetimeDB session query failed, using memory fallback:', spacetimeError);
+      }
+    } else {
+      console.log('ℹ️ SpacetimeDB not configured - using memory session');
     }
   } catch (err) {
-    console.warn('Spacetime unavailable, using in-memory session fallback');
+    console.warn('⚠️ SpacetimeDB initialization failed, using in-memory session fallback');
   }
 
   // Memory fallback
@@ -49,7 +60,8 @@ export async function GET() {
     session, 
     timeRemaining, 
     canJoin,
-    waitingForPaidPlayer 
+    waitingForPaidPlayer,
+    source: 'memory'
   });
 }
 
@@ -60,24 +72,35 @@ export async function POST(req: NextRequest) {
     if (action === 'join') {
       try {
         await spacetimeClient.initialize();
-        await spacetimeClient.joinActiveGameSession();
-        const updatedSession = await spacetimeClient.getActiveGameSession();
-        if (updatedSession) {
-          const now = Date.now();
-          const elapsed = Math.floor((now - updatedSession.start_time) / 1000);
-          const timeRemaining = Math.max(0, 300 - elapsed);
-          const isFirstPaidPlayer = isPaidPlayer && updatedSession.paid_player_count === 1 && updatedSession.status === 'active';
-          const waitingForPaidPlayer = updatedSession.paid_player_count === 0;
-          
-          return NextResponse.json({ 
-            session: updatedSession, 
-            timeRemaining, 
-            isFirstPaidPlayer,
-            waitingForPaidPlayer 
-          });
+        
+        // Check if SpacetimeDB is properly configured and connected
+        if (spacetimeClient.isConfigured()) {
+          try {
+            await spacetimeClient.joinActiveGameSession();
+            const updatedSession = await spacetimeClient.getActiveGameSession();
+            if (updatedSession) {
+              const now = Date.now();
+              const elapsed = Math.floor((now - updatedSession.start_time) / 1000);
+              const timeRemaining = Math.max(0, 300 - elapsed);
+              const isFirstPaidPlayer = isPaidPlayer && updatedSession.paid_player_count === 1 && updatedSession.status === 'active';
+              const waitingForPaidPlayer = updatedSession.paid_player_count === 0;
+              
+              return NextResponse.json({ 
+                session: updatedSession, 
+                timeRemaining, 
+                isFirstPaidPlayer,
+                waitingForPaidPlayer,
+                source: 'spacetime'
+              });
+            }
+          } catch (spacetimeError) {
+            console.warn('⚠️ SpacetimeDB join failed, using memory fallback:', spacetimeError);
+          }
+        } else {
+          console.log('ℹ️ SpacetimeDB not configured - using memory session for join');
         }
       } catch (e) {
-        console.warn('Spacetime join failed, using memory fallback');
+        console.warn('⚠️ SpacetimeDB initialization failed, using memory fallback');
       }
 
       // Verify JWT entry token
@@ -96,7 +119,8 @@ export async function POST(req: NextRequest) {
         session: s, 
         timeRemaining, 
         isFirstPaidPlayer,
-        waitingForPaidPlayer 
+        waitingForPaidPlayer,
+        source: 'memory'
       });
     }
 
@@ -122,7 +146,8 @@ export async function POST(req: NextRequest) {
         session: s, 
         timeRemaining, 
         waitingForPaidPlayer,
-        gameCancelled: s.status === 'waiting' && s.player_count === 0
+        gameCancelled: s.status === 'waiting' && s.player_count === 0,
+        source: 'memory'
       });
     }
 
