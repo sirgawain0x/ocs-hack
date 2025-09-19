@@ -11,6 +11,7 @@ import PlayerCount from '@/components/game/PlayerCount';
 import GameEntry from '@/components/game/GameEntry';
 import GuestModeEntry from '@/components/game/GuestModeEntry';
 import HighScoreDisplay from '@/components/game/HighScoreDisplay';
+import { PlayerActivityMonitor } from '@/components/game/CDPEventMonitor';
 import type { TriviaQuestion } from '@/types/game';
 import { ASSETS } from '@/lib/config/assets';
 import { ScoringSystem } from '@/lib/game/scoring';
@@ -521,6 +522,11 @@ export default function Game() {
           {/* Active Players */}
           <div className="absolute left-36 top-[318px]">
             <ActivePlayers maxPlayers={16} />
+          </div>
+          
+          {/* CDP Live Activity Monitor */}
+          <div className="absolute right-4 top-[350px] w-48">
+            <PlayerActivityMonitor />
           </div>
           
           {/* Answer Options - positioned at the bottom with original styling */}
