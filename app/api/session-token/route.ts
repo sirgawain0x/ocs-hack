@@ -128,18 +128,20 @@ export async function POST(req: NextRequest) {
     // Extract client IP from the request
     // Note: We should not trust X-Forwarded-For headers as they can be spoofed
     // For production, you should extract the real client IP from your load balancer/proxy
-    const rawIp = req.ip;
     const forwardedFor = req.headers.get('x-forwarded-for');
     const realIp = req.headers.get('x-real-ip');
+    const cfConnectingIp = req.headers.get('cf-connecting-ip'); // Cloudflare
+    const xClientIp = req.headers.get('x-client-ip');
     
-    console.log('Raw IP from req.ip:', rawIp);
     console.log('X-Forwarded-For header:', forwardedFor);
     console.log('X-Real-IP header:', realIp);
+    console.log('CF-Connecting-IP header:', cfConnectingIp);
+    console.log('X-Client-IP header:', xClientIp);
     
     // For development/testing, use a public IP
     // In production, you should extract the real client IP from your infrastructure
     const clientIp = process.env.NODE_ENV === 'production' 
-      ? (rawIp || forwardedFor?.split(',')[0]?.trim() || realIp || '8.8.8.8')
+      ? (cfConnectingIp || xClientIp || realIp || forwardedFor?.split(',')[0]?.trim() || '8.8.8.8')
       : '8.8.8.8'; // Always use public IP for development
     
     console.log('Final client IP being used:', clientIp);
