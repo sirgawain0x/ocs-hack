@@ -1,5 +1,5 @@
 // Entry fee in USDC (1 USDC = 1000000 wei for USDC with 6 decimals)
-export const ENTRY_FEE_USDC = '1000000'; // 1 USDC
+export const ENTRY_FEE_USDC = '1'; // 1 USDC
 export const TRIAL_ENTRY_FEE_USDC = '0'; // 0 USDC for trial players
 
 // USDC contract address on Base Mainnet
