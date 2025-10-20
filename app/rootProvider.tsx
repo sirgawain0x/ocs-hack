@@ -52,8 +52,6 @@ function OnchainKitProviderWrapper({ children }: { children: ReactNode }) {
       projectId={process.env.NEXT_PUBLIC_CDP_PROJECT_ID || "5b09d242-5390-4db3-866f-bfc2ce575821"}
       miniKit={{ enabled: true }}
       config={{
-        // Paymaster configuration for sponsored transactions - matches OnchainKit docs
-        paymaster: process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT,
         appearance: {
           name: "BEAT ME",
           mode: "auto", // Change back to "auto" to allow theme switching
@@ -64,6 +62,8 @@ function OnchainKitProviderWrapper({ children }: { children: ReactNode }) {
         },
         // Disable analytics to prevent 401 errors
         analytics: false,
+        // Paymaster configuration - using the CDP paymaster URL
+        paymaster: process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT as string,
       }}
     >
       {children}
