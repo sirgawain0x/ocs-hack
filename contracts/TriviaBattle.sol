@@ -127,15 +127,14 @@ contract TriviaBattle is ReentrancyGuard, Ownable {
     function joinBattle() external nonReentrant {
         require(currentSession.playerScores[msg.sender].score == 0, "Already joined");
         
-        // If no active session, start one automatically
-        if (!currentSession.isActive) {
+        // If no active session OR the previous session has ended, start a new one automatically
+        if (!currentSession.isActive || block.timestamp > currentSession.endTime) {
             _startNewSession(300); // Default 5 minutes
         }
         
-        // Ensure session is still active (in case it ended between checks)
+        // Ensure session is active and has started
         require(currentSession.isActive, "No active session");
         require(block.timestamp >= currentSession.startTime, "Session not started");
-        require(block.timestamp <= currentSession.endTime, "Session ended");
         
         // Calculate platform fee (2.5% of entry fee)
         uint256 platformFee = (ENTRY_FEE * PLATFORM_FEE_BPS) / 10000;
@@ -181,15 +180,14 @@ contract TriviaBattle is ReentrancyGuard, Ownable {
         require(bytes(sessionId).length > 0, "Invalid session ID");
         require(currentSession.trialPlayerScores[sessionId].score == 0, "Session ID already used");
         
-        // If no active session, start one automatically
-        if (!currentSession.isActive) {
+        // If no active session OR the previous session has ended, start a new one automatically
+        if (!currentSession.isActive || block.timestamp > currentSession.endTime) {
             _startNewSession(300); // Default 5 minutes
         }
         
-        // Ensure session is still active (in case it ended between checks)
+        // Ensure session is active and has started
         require(currentSession.isActive, "No active session");
         require(block.timestamp >= currentSession.startTime, "Session not started");
-        require(block.timestamp <= currentSession.endTime, "Session ended");
         
         currentSession.trialPlayerCount++;
         currentSession.trialPlayers.push(sessionId);
