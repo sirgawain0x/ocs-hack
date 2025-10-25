@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as crypto from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     // Method 2: Try with HMAC signature
     const message = `${method} ${host}${path}\n${timestamp}`;
-    const signature = crypto.createHmac('sha256', keySecret).update(message).digest('hex');
+    const signature = createHmac('sha256', keySecret).update(message).digest('hex');
     
     const response2 = await fetch(`https://${host}${path}`, {
       method: 'POST',
@@ -105,7 +105,7 @@ function generateJWT(keyName: string, keySecret: string, method: string, host: s
   const header = {
     alg: 'HS256',
     kid: keyName,
-    nonce: crypto.randomBytes(16).toString('hex')
+    nonce: randomBytes(16).toString('hex')
   };
 
   const payload = {
@@ -118,7 +118,7 @@ function generateJWT(keyName: string, keySecret: string, method: string, host: s
 
   const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', keySecret)
+  const signature = createHmac('sha256', keySecret)
     .update(`${headerB64}.${payloadB64}`)
     .digest('base64url');
 
