@@ -30,13 +30,40 @@ const nextConfig: NextConfig = {
   // Optimize bundle size
   serverExternalPackages: ['@spacetimedb/client'],
   // Exclude large directories from build
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     if (isServer) {
       config.externals = config.externals || [];
       config.externals.push({
         'lib/chainlink': 'commonjs lib/chainlink',
       });
     }
+    
+    // Optimize for production builds
+    if (!dev) {
+      // Enable tree shaking
+      config.optimization = config.optimization || {};
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+      
+      // Split chunks for better caching
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      };
+    }
+    
     return config;
   },
 };
