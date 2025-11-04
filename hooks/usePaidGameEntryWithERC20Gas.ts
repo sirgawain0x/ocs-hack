@@ -117,15 +117,10 @@ export function usePaidGameEntryWithERC20Gas() {
 
       // Send batched transaction with ERC-20 gas payment
       // The bundler client handles the paymaster integration
-      // For ERC-20 gas payment, we need to pass the paymaster context
+      // The paymaster service URL is configured in the bundler client setup
+      // ERC-20 gas payment is handled automatically by the CDP Paymaster when configured
       const hash = await bundlerClient.sendUserOperation({
         calls,
-        // ERC-20 gas payment context
-        // The paymaster service URL should be configured in the bundler client
-        // For ERC-20 payment, we specify the token in the context
-        context: {
-          erc20: USDC_CONTRACT_ADDRESS, // Pay gas in USDC
-        },
       });
 
       console.log('✅ Transaction with ERC-20 gas payment sent:', hash);
