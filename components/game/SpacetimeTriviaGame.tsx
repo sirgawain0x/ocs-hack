@@ -331,7 +331,7 @@ export default function SpacetimeTriviaGame({ className = '', onWalletConnect, o
               }}
               size="lg"
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-3"
-              disabled={isConnected && address}
+              disabled={isConnected && !!address}
             >
               {isConnected && address ? 'Wallet Connected' : 'Connect Wallet to Continue'}
             </Button>
