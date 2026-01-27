@@ -90,8 +90,8 @@ export const useGameSession = (): UseGameSessionReturn => {
       const data = await response.json();
       setSession(data.session);
       setTimeRemaining(data.timeRemaining);
-      // Fix: Allow joining when there are no paid players, regardless of time remaining
-      setCanJoin(data.session.paid_player_count === 0 || data.timeRemaining > 0);
+      // Use the canJoin value from the API response (which handles Waiting sessions properly)
+      setCanJoin(data.canJoin !== false); // Default to true if not specified
       setWaitingForPaidPlayer(data.waitingForPaidPlayer || false);
     } catch (err) {
       console.error('Error fetching game session:', err);
@@ -173,8 +173,8 @@ export const useGameSession = (): UseGameSessionReturn => {
       setSession(data.session);
       setTimeRemaining(data.timeRemaining);
       saveEntryToken(token); // Use helper function to persist token
-      // Fix: Allow joining when there are no paid players, regardless of time remaining
-      setCanJoin(data.session.paid_player_count === 0 || data.timeRemaining > 0);
+      // Use the canJoin value from the API response
+      setCanJoin(data.canJoin !== false); // Default to true if not specified
       setWaitingForPaidPlayer(data.waitingForPaidPlayer || false);
     } catch (err) {
       console.error('❌ Error joining game:', err);
@@ -211,8 +211,8 @@ export const useGameSession = (): UseGameSessionReturn => {
       const data = await response.json();
       setSession(data.session);
       setTimeRemaining(data.timeRemaining);
-      // Fix: Allow joining when there are no paid players, regardless of time remaining
-      setCanJoin(data.session.paid_player_count === 0 || data.timeRemaining > 0);
+      // Use the canJoin value from the API response
+      setCanJoin(data.canJoin !== false); // Default to true if not specified
       setWaitingForPaidPlayer(data.waitingForPaidPlayer || false);
       
       // Clear player ID when leaving
@@ -253,8 +253,15 @@ export const useGameSession = (): UseGameSessionReturn => {
   // Effect to update canJoin whenever session or timeRemaining changes
   useEffect(() => {
     if (session) {
-      // Fix: Allow joining when there are no paid players, regardless of time remaining
-      setCanJoin(session.paid_player_count === 0 || timeRemaining > 0);
+      // CRITICAL FIX: Allow joining if:
+      // 1. Session is Waiting (trial players can join, waiting for paid player)
+      // 2. Session is Active with paid players AND time hasn't expired
+      // 3. Session has no paid players (shouldn't block joining)
+      const isWaiting = session.status === 'waiting';
+      const isActiveWithTime = session.status === 'active' && session.paid_player_count > 0 && timeRemaining > 0;
+      const hasNoPaidPlayers = session.paid_player_count === 0;
+      
+      setCanJoin(isWaiting || isActiveWithTime || hasNoPaidPlayers);
     }
   }, [session, timeRemaining]);
 

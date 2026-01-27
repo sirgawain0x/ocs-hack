@@ -45,36 +45,42 @@ export function usePaidGameEntry() {
     const calls = createPaidGameCalls();
     setFinalTxHash(undefined); // Reset previous hash
     
-    // For EOA, we need to execute calls sequentially
-    // First approve USDC
-    setCurrentStep('approving_usdc');
-    console.log('EOA: Approving USDC...');
-    await writeContractEOA({
-      address: calls[0].address,
-      abi: calls[0].abi,
-      functionName: calls[0].functionName as "approve",
-      args: calls[0].args as [`0x${string}`, bigint],
-    });
-    
-    // Wait a moment for approval to be processed
-    // Note: Ideally we should wait for the approval receipt here, but sticking to existing pattern for now
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Then join battle
-    setCurrentStep('joining_battle');
-    console.log('EOA: Joining battle...');
-    const hash = await writeContractEOA({
-      address: calls[1].address,
-      abi: calls[1].abi,
-      functionName: calls[1].functionName as "joinBattle",
-      args: calls[1].args as [],
-    });
-    
-    console.log('✅ EOA: Transaction hash received:', hash);
-    // Set the hash for the FINAL transaction we care about
-    setFinalTxHash(hash);
-    
-    setCurrentStep('complete');
+    try {
+      // For EOA, we need to execute calls sequentially
+      // First approve USDC
+      setCurrentStep('approving_usdc');
+      console.log('EOA: Approving USDC...');
+      await writeContractEOA({
+        address: calls[0].address,
+        abi: calls[0].abi,
+        functionName: calls[0].functionName as "approve",
+        args: calls[0].args as [`0x${string}`, bigint],
+      });
+      
+      // Wait a moment for approval to be processed
+      // Note: Ideally we should wait for the approval receipt here, but sticking to existing pattern for now
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Then join battle
+      setCurrentStep('joining_battle');
+      console.log('EOA: Joining battle...');
+      const hash = await writeContractEOA({
+        address: calls[1].address,
+        abi: calls[1].abi,
+        functionName: calls[1].functionName as "joinBattle",
+        args: calls[1].args as [],
+      });
+      
+      console.log('✅ EOA: Transaction hash received:', hash);
+      // Set the hash for the FINAL transaction we care about
+      setFinalTxHash(hash);
+      
+      setCurrentStep('complete');
+    } catch (error) {
+      console.error('❌ EOA transaction error:', error);
+      // Re-throw to be handled by caller
+      throw error;
+    }
   }, [writeContractEOA]);
 
   // Smart Account uses ERC-20 gas payment (handled by usePaidGameEntryWithERC20Gas)
@@ -117,14 +123,23 @@ export function usePaidGameEntry() {
     }
 
     // Now proceed with the game entry
-    if (capabilities?.paymasterService?.supported && erc20GasReady) {
-      console.log('Using Smart Account with ERC-20 gas payment (USDC for gas)');
-      setCurrentStep('batching_transaction');
-      await joinGameWithERC20Gas();
-      setCurrentStep('complete');
-    } else {
-      console.log('Using EOA account (ETH for gas)');
-      await joinGameEOA();
+    try {
+      if (capabilities?.paymasterService?.supported && erc20GasReady) {
+        console.log('Using Smart Account with ERC-20 gas payment (USDC for gas)');
+        setCurrentStep('batching_transaction');
+        await joinGameWithERC20Gas();
+        setCurrentStep('complete');
+      } else {
+        console.log('Using EOA account (ETH for gas)');
+        await joinGameEOA();
+      }
+    } catch (error) {
+      // Enhance error message for popup blocker issues
+      if (error instanceof Error && error.message.includes('Popup window was blocked')) {
+        throw new Error('Popup window was blocked. Please allow popups for this site. If using Base Account, click "Try again" when the popup permission prompt appears.');
+      }
+      // Re-throw other errors as-is
+      throw error;
     }
   }, [capabilities, erc20GasReady, joinGameEOA, joinGameWithERC20Gas]);
 
