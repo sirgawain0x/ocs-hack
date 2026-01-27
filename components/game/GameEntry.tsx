@@ -226,12 +226,24 @@ export default function GameEntry({ onGameStart, entryToken, className = '', pla
       console.error('Failed to join game:', err);
       setIsProcessingPayment(false);
       
+      // Check for popup blocker error (common with Base Account)
+      if (err instanceof Error && (
+        err.message.includes('Popup window was blocked') ||
+        err.message.includes('popup') ||
+        err.message.includes('blocked')
+      )) {
+        setError('Popup was blocked. Please allow popups for this site and try again. If using Base Account, you may need to approve the popup permission when prompted.');
+      } 
       // Check if it's a user rejection
-      if (err instanceof Error && (err.message.includes('User rejected') || err.message.includes('User cancelled'))) {
+      else if (err instanceof Error && (err.message.includes('User rejected') || err.message.includes('User cancelled'))) {
         setError('Transaction was cancelled. Please try again when ready.');
-      } else if (err instanceof Error && err.message.includes('Failed to create blockchain game')) {
+      } 
+      // Check for blockchain game creation error
+      else if (err instanceof Error && err.message.includes('Failed to create blockchain game')) {
         setError(`Unable to start game: ${err.message}. Please try again or contact support.`);
-      } else {
+      } 
+      // Generic error
+      else {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(`Failed to join game: ${errorMessage}. Please try again.`);
       }
@@ -656,7 +668,28 @@ export default function GameEntry({ onGameStart, entryToken, className = '', pla
                       <div className="text-red-400 text-sm text-center mb-2">
                         {error}
                       </div>
-                      {error?.includes('wallet') && (
+                      {error?.includes('Popup') || error?.includes('popup') || error?.includes('blocked') ? (
+                        <div className="space-y-2">
+                          <div className="text-xs text-gray-400 text-center">
+                            If you're using Base Account, please:
+                          </div>
+                          <ol className="text-xs text-gray-300 list-decimal list-inside space-y-1">
+                            <li>Click "Try again" when the popup permission prompt appears</li>
+                            <li>Allow popups for this site in your browser settings</li>
+                            <li>Then click "Start Paid Game" again</li>
+                          </ol>
+                          <div className="text-center pt-2">
+                            <Button
+                              onClick={handlePaidGameEntry}
+                              size="sm"
+                              variant="outline"
+                              className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                            >
+                              Try Again
+                            </Button>
+                          </div>
+                        </div>
+                      ) : error?.includes('wallet') ? (
                         <div className="text-center">
                           <button
                             onClick={() => window.location.reload()}
@@ -665,7 +698,7 @@ export default function GameEntry({ onGameStart, entryToken, className = '', pla
                             Try reconnecting your wallet
                           </button>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </>

@@ -27,15 +27,31 @@ export async function GET() {
 
         if (activeSession) {
           const now = Date.now();
-          const elapsed = Math.floor((now - Number(activeSession.startTime)) / 1000);
-          const timeRemaining = Math.max(0, 300 - elapsed);
-          // Fix: Allow joining when there are no paid players, regardless of time remaining
-          const canJoin = activeSession.paidPlayerCount === 0 || timeRemaining > 0;
+          const sessionStatus = activeSession.status?.tag || activeSession.status || 'waiting';
+          
+          // Calculate time remaining only for Active sessions with paid players
+          let timeRemaining = 0;
+          if (sessionStatus === 'Active' && activeSession.paidPlayerCount > 0) {
+            const elapsed = Math.floor((now - Number(activeSession.startTime)) / 1000);
+            timeRemaining = Math.max(0, 300 - elapsed);
+          }
+          
+          // CRITICAL FIX: Allow joining if:
+          // 1. Session is Waiting (trial players can join, waiting for paid player)
+          // 2. Session is Active with paid players AND time hasn't expired
+          // 3. Session is Active but has no paid players (shouldn't happen, but handle gracefully)
+          const isWaiting = sessionStatus === 'Waiting';
+          const isActiveWithTime = sessionStatus === 'Active' && activeSession.paidPlayerCount > 0 && timeRemaining > 0;
+          const hasNoPaidPlayers = activeSession.paidPlayerCount === 0;
+          
+          const canJoin = isWaiting || isActiveWithTime || hasNoPaidPlayers;
+          const waitingForPaidPlayer = activeSession.paidPlayerCount === 0;
+          
           return NextResponse.json({ 
             session: activeSession, 
             timeRemaining, 
             canJoin,
-            waitingForPaidPlayer: activeSession.paidPlayerCount === 0,
+            waitingForPaidPlayer,
             source: 'spacetime'
           });
         }
@@ -52,8 +68,16 @@ export async function GET() {
   // Memory fallback
   const session = memGet();
   const timeRemaining = memTime(session);
-  // Fix: Allow joining when there are no paid players, regardless of time remaining
-  const canJoin = session.paid_player_count === 0 || timeRemaining > 0;
+  
+  // CRITICAL FIX: Allow joining if:
+  // 1. Session is Waiting (trial players can join, waiting for paid player)
+  // 2. Session is Active with paid players AND time hasn't expired
+  // 3. Session has no paid players (shouldn't block joining)
+  const isWaiting = session.status === 'waiting';
+  const isActiveWithTime = session.status === 'active' && session.paid_player_count > 0 && timeRemaining > 0;
+  const hasNoPaidPlayers = session.paid_player_count === 0;
+  
+  const canJoin = isWaiting || isActiveWithTime || hasNoPaidPlayers;
   const waitingForPaidPlayer = session.paid_player_count === 0;
   
   return NextResponse.json({ 
@@ -80,16 +104,30 @@ export async function POST(req: NextRequest) {
             const updatedSession = await spacetimeClient.getActiveGameSession();
             if (updatedSession) {
               const now = Date.now();
-              const elapsed = Math.floor((now - Number(updatedSession.startTime)) / 1000);
-              const timeRemaining = Math.max(0, 300 - elapsed);
-              const isFirstPaidPlayer = isPaidPlayer && updatedSession.paidPlayerCount === 1 && updatedSession.status.tag === 'Active';
+              const sessionStatus = updatedSession.status?.tag || updatedSession.status || 'waiting';
+              
+              // Calculate time remaining only for Active sessions with paid players
+              let timeRemaining = 0;
+              if (sessionStatus === 'Active' && updatedSession.paidPlayerCount > 0) {
+                const elapsed = Math.floor((now - Number(updatedSession.startTime)) / 1000);
+                timeRemaining = Math.max(0, 300 - elapsed);
+              }
+              
+              const isFirstPaidPlayer = isPaidPlayer && updatedSession.paidPlayerCount === 1 && sessionStatus === 'Active';
               const waitingForPaidPlayer = updatedSession.paidPlayerCount === 0;
+              
+              // CRITICAL FIX: Calculate canJoin same as GET endpoint
+              const isWaiting = sessionStatus === 'Waiting';
+              const isActiveWithTime = sessionStatus === 'Active' && updatedSession.paidPlayerCount > 0 && timeRemaining > 0;
+              const hasNoPaidPlayers = updatedSession.paidPlayerCount === 0;
+              const canJoin = isWaiting || isActiveWithTime || hasNoPaidPlayers;
               
               return NextResponse.json({ 
                 session: updatedSession, 
                 timeRemaining, 
                 isFirstPaidPlayer,
                 waitingForPaidPlayer,
+                canJoin,
                 source: 'spacetime'
               });
             }
@@ -136,11 +174,18 @@ export async function POST(req: NextRequest) {
       const isFirstPaidPlayer = actualIsPaidPlayer && s.paid_player_count === 1 && s.status === 'active';
       const waitingForPaidPlayer = s.paid_player_count === 0;
       
+      // CRITICAL FIX: Calculate canJoin same as GET endpoint
+      const isWaiting = s.status === 'waiting';
+      const isActiveWithTime = s.status === 'active' && s.paid_player_count > 0 && timeRemaining > 0;
+      const hasNoPaidPlayers = s.paid_player_count === 0;
+      const canJoin = isWaiting || isActiveWithTime || hasNoPaidPlayers;
+      
       return NextResponse.json({ 
         session: s, 
         timeRemaining, 
         isFirstPaidPlayer,
         waitingForPaidPlayer,
+        canJoin,
         source: 'memory'
       });
     }
@@ -173,10 +218,17 @@ export async function POST(req: NextRequest) {
       const timeRemaining = memTime(s);
       const waitingForPaidPlayer = s.paid_player_count === 0;
       
+      // CRITICAL FIX: Calculate canJoin same as GET endpoint
+      const isWaiting = s.status === 'waiting';
+      const isActiveWithTime = s.status === 'active' && s.paid_player_count > 0 && timeRemaining > 0;
+      const hasNoPaidPlayers = s.paid_player_count === 0;
+      const canJoin = isWaiting || isActiveWithTime || hasNoPaidPlayers;
+      
       return NextResponse.json({ 
         session: s, 
         timeRemaining, 
         waitingForPaidPlayer,
+        canJoin,
         gameCancelled: s.status === 'waiting' && s.player_count === 0,
         source: 'memory'
       });
