@@ -24,50 +24,39 @@ export function useBundlerClient() {
   const chain = chainId === base.id ? base : baseSepolia;
   const bundlerUrl = process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT;
 
-  // Extract authenticated RPC URL from bundler endpoint or use base RPC URL
-  // The bundler URL format is: https://api.developer.coinbase.com/rpc/v1/base/{API_KEY}
-  // We can use this same URL for authenticated RPC calls
-  const authenticatedRpcUrl = useMemo(() => {
-    // If bundler URL is set, use it as the authenticated RPC endpoint
-    if (bundlerUrl) {
-      return bundlerUrl;
-    }
-    // Fallback to base RPC URL (may be public or authenticated)
+  // IMPORTANT: Use public RPC for general reads, not the authenticated CDP endpoint
+  // The authenticated CDP endpoint should ONLY be used for bundler/paymaster operations
+  // Using it for general reads causes 401 errors
+  const publicRpcUrl = useMemo(() => {
     const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
-    if (baseRpcUrl && baseRpcUrl.includes('api.developer.coinbase.com')) {
+    // Only use public endpoints (not authenticated CDP endpoints)
+    if (baseRpcUrl && !baseRpcUrl.includes('api.developer.coinbase.com')) {
       return baseRpcUrl;
     }
-    // Final fallback to public RPC (may cause 401 if authentication is required)
+    // Fallback to public Base RPC
     return chain.rpcUrls.default.http[0];
-  }, [bundlerUrl, chain]);
+  }, [chain]);
 
   // Create public client for RPC calls
-  // Use authenticated RPC endpoint for reads, fallback to wallet provider for signing
+  // Use public RPC for reads, wallet provider for signing
   const publicClient = useMemo(() => {
     if (typeof window === 'undefined') return null;
     
     const transports = [];
     
-    // Add authenticated RPC endpoint if available
-    if (authenticatedRpcUrl) {
-      transports.push(http(authenticatedRpcUrl));
-    }
+    // Add public RPC endpoint for reads
+    transports.push(http(publicRpcUrl));
     
     // Add wallet provider for signing operations
     if (window.ethereum) {
       transports.push(custom(window.ethereum));
     }
     
-    // Fallback to public RPC if no authenticated endpoint
-    if (transports.length === 0) {
-      transports.push(http(chain.rpcUrls.default.http[0]));
-    }
-    
     return createPublicClient({
       chain,
       transport: transports.length > 1 ? fallback(transports) : transports[0],
     });
-  }, [chain, authenticatedRpcUrl]);
+  }, [chain, publicRpcUrl]);
 
   // Create smart account from connected wallet
   useEffect(() => {

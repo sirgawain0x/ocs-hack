@@ -11,7 +11,14 @@ export interface TopEarner {
   bestScore: number;
 }
 
+export type LeaderboardViewType = 'scores' | 'earnings';
+
 interface UseTopEarnersOptions {
+  /**
+   * View type: 'scores' for highest scores, 'earnings' for top earners
+   * @default 'scores'
+   */
+  viewType?: LeaderboardViewType;
   /**
    * Enable real-time updates via WebSocket subscriptions
    * @default true (always realtime with new SDK)
@@ -25,15 +32,19 @@ interface UseTopEarnersOptions {
 }
 
 /**
- * Hook to fetch top earners with real-time updates
+ * Hook to fetch leaderboard with real-time updates
+ * Supports two view types:
+ * - 'scores': Sorts players by bestScore (highest to lowest)
+ * - 'earnings': Sorts players by totalEarnings (highest to lowest)
  * 
  * @example
- * const { topEarners, isLoading } = useTopEarners(10);
+ * const { topEarners, isLoading } = useTopEarners(10, { viewType: 'scores' });
  */
 export const useTopEarners = (
   limit: number = 10,
   options: UseTopEarnersOptions = {}
 ) => {
+  const { viewType = 'scores' } = options;
   const { connection, isConnected, error: connectionError } = useSpacetime();
   
   const [topEarners, setTopEarners] = useState<TopEarner[]>([]);
@@ -56,9 +67,28 @@ export const useTopEarners = (
       // Subscribe to players table changes
       const updateTopEarners = () => {
         // Use .iter() to get an iterable from SpacetimeDB table
-        const earners = (Array.from(connection.db.players.iter()) as Player[])
-          .filter((p: Player) => p.totalEarnings > 0)
-          .sort((a: Player, b: Player) => b.totalEarnings - a.totalEarnings)
+        let filteredPlayers: Player[];
+        
+        if (viewType === 'scores') {
+          // Filter players with scores > 0 and sort by bestScore
+          filteredPlayers = (Array.from(connection.db.players.iter()) as Player[])
+            .filter((p: Player) => p.bestScore > 0);
+        } else {
+          // Filter players with earnings > 0 and sort by totalEarnings
+          filteredPlayers = (Array.from(connection.db.players.iter()) as Player[])
+            .filter((p: Player) => p.totalEarnings > 0);
+        }
+        
+        // Sort based on view type
+        const sortedPlayers = filteredPlayers.sort((a: Player, b: Player) => {
+          if (viewType === 'scores') {
+            return b.bestScore - a.bestScore; // Sort by bestScore descending
+          } else {
+            return b.totalEarnings - a.totalEarnings; // Sort by totalEarnings descending
+          }
+        });
+        
+        const earners = sortedPlayers
           .slice(0, limit)
           .map((p: Player) => ({
             walletAddress: p.walletAddress,
@@ -89,11 +119,11 @@ export const useTopEarners = (
         connection.db.players.removeOnDelete(updateTopEarners);
       };
     } catch (err) {
-      console.error('Error setting up top earners subscription:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load top earners');
+      console.error('Error setting up leaderboard subscription:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
       setIsLoading(false);
     }
-  }, [connection, isConnected, limit]);
+  }, [connection, isConnected, limit, viewType]);
 
   useEffect(() => {
     if (connectionError) {
