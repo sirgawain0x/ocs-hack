@@ -8,23 +8,22 @@ import { coinbaseWallet, baseAccount } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SpacetimeProvider } from "@/components/providers/SpacetimeProvider";
 
-// Get authenticated RPC URL for wagmi config
-// Prefer authenticated Coinbase RPC endpoint if available
+// Get RPC URL for wagmi config
+// IMPORTANT: Use public RPC for general wagmi operations
+// The CDP authenticated endpoint is only for bundler/paymaster operations
+// Using it for general RPC calls causes 401 errors
 const getBaseRpcUrl = () => {
-  // First, check if bundler endpoint is set (contains API key)
-  const bundlerUrl = process.env.NEXT_PUBLIC_PAYMASTER_AND_BUNDLER_ENDPOINT;
-  if (bundlerUrl && bundlerUrl.includes('api.developer.coinbase.com')) {
-    return bundlerUrl;
-  }
-  
-  // Second, check if base RPC URL is authenticated
+  // Always use public RPC for wagmi general operations
+  // The authenticated CDP endpoint should only be used for bundler/paymaster
   const baseRpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
-  if (baseRpcUrl && baseRpcUrl.includes('api.developer.coinbase.com')) {
+  
+  // Only use public endpoints (not authenticated CDP endpoints)
+  if (baseRpcUrl && !baseRpcUrl.includes('api.developer.coinbase.com')) {
     return baseRpcUrl;
   }
   
-  // Fallback to configured base RPC URL or public endpoint
-  return baseRpcUrl || 'https://mainnet.base.org';
+  // Fallback to public Base RPC endpoint
+  return 'https://mainnet.base.org';
 };
 
 // Create wagmi config with MiniKit and Base Account support

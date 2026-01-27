@@ -1,6 +1,6 @@
 'use client';
 
-import { useTopEarners } from '@/hooks/useTopEarners';
+import { useTopEarners, type LeaderboardViewType } from '@/hooks/useTopEarners';
 import Image from 'next/image';
 import { ASSETS } from '@/lib/config/assets';
 import { Loader2 } from 'lucide-react';
@@ -10,13 +10,18 @@ import { base } from 'viem/chains';
 interface TopEarnersProps {
   limit?: number;
   className?: string;
+  viewType?: LeaderboardViewType;
 }
 
-export default function TopEarners({ limit = 10, className = '' }: TopEarnersProps) {
-  const { topEarners, isLoading, error } = useTopEarners(limit);
+export default function TopEarners({ limit = 10, className = '', viewType = 'scores' }: TopEarnersProps) {
+  const { topEarners, isLoading, error } = useTopEarners(limit, { viewType });
+
+  const formatScore = (score: number) => {
+    return score.toLocaleString(); // Format score with commas for readability
+  };
 
   const formatEarnings = (earnings: number) => {
-    return earnings.toFixed(2);
+    return earnings.toFixed(2); // Format earnings to 2 decimal places
   };
 
   // Component to display player name with fallback priority:
@@ -54,7 +59,7 @@ export default function TopEarners({ limit = 10, className = '' }: TopEarnersPro
       <div className="text-gray-400 text-sm text-center p-4">
         {error.includes('connected') || error.includes('connection') 
           ? 'Leaderboard will appear when connected'
-          : 'Failed to load top earners'}
+          : 'Failed to load leaderboard'}
       </div>
     );
   }
@@ -100,7 +105,10 @@ export default function TopEarners({ limit = 10, className = '' }: TopEarnersPro
           </div>
           <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#ffffff] text-[12px] text-nowrap">
             <p className="leading-[normal] whitespace-pre">
-              {formatEarnings(earner.totalEarnings)} USDC
+              {viewType === 'scores' 
+                ? `${formatScore(earner.bestScore)} pts`
+                : `${formatEarnings(earner.totalEarnings)} USDC`
+              }
             </p>
           </div>
         </div>

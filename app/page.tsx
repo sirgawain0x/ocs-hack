@@ -27,6 +27,7 @@ import { Avatar, Name, Identity, Address, EthBalance } from '@coinbase/onchainki
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import GameScoreCard from '@/components/game/GameScoreCard';
 
 export default function Home() {
@@ -40,6 +41,7 @@ export default function Home() {
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [isTrialGame, setIsTrialGame] = useState(false);
   const [guestName, setGuestName] = useState('');
+  const [leaderboardView, setLeaderboardView] = useState<'scores' | 'earnings'>('scores');
 
   // Game state
   const [currentQuestion, setCurrentQuestion] = useState<TriviaQuestion | null>(null);
@@ -1066,13 +1068,40 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Container for the TOP EARNERS section */}
+          {/* Container for the LEADERBOARD section with toggle */}
           <div className="flex flex-col items-center w-full">
-            <h2 className="text-white text-lg font-['Audiowide:Regular',_sans-serif] mb-4">
-              TOP EARNERS
-            </h2>
+            <div className="flex flex-col items-center gap-3 mb-4 w-full">
+              <h2 className="text-white text-lg font-['Audiowide:Regular',_sans-serif]">
+                {leaderboardView === 'scores' ? 'HIGHEST SCORES' : 'TOP EARNERS'}
+              </h2>
+              <ToggleGroup
+                type="single"
+                value={leaderboardView}
+                onValueChange={(value) => {
+                  if (value === 'scores' || value === 'earnings') {
+                    setLeaderboardView(value);
+                  }
+                }}
+                className="flex gap-2"
+              >
+                <ToggleGroupItem
+                  value="scores"
+                  aria-label="Highest Scores"
+                  className="font-['Audiowide:Regular',_sans-serif] text-[12px] text-[#ffffff] data-[state=on]:bg-[#bc58ff] data-[state=on]:text-[#000000] data-[state=off]:bg-transparent data-[state=off]:text-[#ffffff] border border-[#ffffff] hover:bg-[#bc58ff] hover:text-[#000000] transition-colors"
+                >
+                  SCORES
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="earnings"
+                  aria-label="Top Earners"
+                  className="font-['Audiowide:Regular',_sans-serif] text-[12px] text-[#ffffff] data-[state=on]:bg-[#bc58ff] data-[state=on]:text-[#000000] data-[state=off]:bg-transparent data-[state=off]:text-[#ffffff] border border-[#ffffff] hover:bg-[#bc58ff] hover:text-[#000000] transition-colors"
+                >
+                  EARNINGS
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <div className="w-full max-w-[328px]">
-              <TopEarners limit={10} />
+              <TopEarners limit={10} viewType={leaderboardView} />
             </div>
           </div>
           
