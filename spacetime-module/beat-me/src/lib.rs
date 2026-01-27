@@ -677,7 +677,44 @@ pub fn get_trial_leaderboard(ctx: &ReducerContext, limit: u32) {
 
 #[spacetimedb::reducer]
 pub fn get_active_game_session(ctx: &ReducerContext) {
-    // Find active or waiting session
+    // First, clean up expired sessions (5 minutes = 300 seconds = 300,000,000 microseconds)
+    let game_duration = TimeDuration::from_duration(Duration::from_secs(300));
+    let now = ctx.timestamp;
+    
+    let expired_sessions: Vec<_> = ctx.db.active_game_sessions().iter()
+        .filter(|s| {
+            match s.status {
+                SessionStatus::Active => {
+                    // Active sessions expire after 5 minutes
+                    let elapsed = now - s.start_time;
+                    elapsed >= game_duration
+                }
+                SessionStatus::Waiting => {
+                    // Waiting sessions with only trial players that are old (more than 10 minutes) should be cleaned up
+                    // This prevents trial-only sessions from blocking new players indefinitely
+                    if s.paid_player_count == 0 && s.trial_player_count > 0 {
+                        let elapsed = now - s.created_at;
+                        elapsed >= TimeDuration::from_duration(Duration::from_secs(600)) // 10 minutes
+                    } else {
+                        false
+                    }
+                }
+                SessionStatus::Completed => true, // Already completed, should be cleaned up
+            }
+        })
+        .map(|s| s.id)
+        .collect();
+    
+    // Mark expired sessions as completed
+    for expired_id in expired_sessions {
+        if let Some(mut session) = ctx.db.active_game_sessions().id().find(&expired_id) {
+            session.status = SessionStatus::Completed;
+            ctx.db.active_game_sessions().id().update(session);
+            log::info!("⏰ Marked expired session {} as Completed", expired_id);
+        }
+    }
+    
+    // Find active or waiting session (excluding completed ones)
     let active_session = ctx.db.active_game_sessions().iter()
         .filter(|s| matches!(s.status, SessionStatus::Active | SessionStatus::Waiting))
         .max_by_key(|s| s.created_at);
@@ -715,11 +752,17 @@ pub fn join_active_game_session(ctx: &ReducerContext, player_type: String) {
     
     if let Some(mut session) = active_session {
         let is_first_player = session.player_count == 0;
+        let is_first_paid_player = matches!(ptype, PlayerType::Paid) && session.paid_player_count == 0;
         
-        if is_first_player {
+        // CRITICAL FIX: Only mark session as Active when the FIRST PAID player joins
+        // Trial players should NOT start the countdown timer
+        if is_first_paid_player {
             session.status = SessionStatus::Active;
             session.start_time = ctx.timestamp;
+            log::info!("🎮 First PAID player joined session: {} (starting countdown)", session.session_id);
         }
+        // If only trial players join, keep session in Waiting state
+        // This allows new players to join without being blocked by expired trial-only sessions
         
         session.player_count += 1;
         
@@ -730,19 +773,25 @@ pub fn join_active_game_session(ctx: &ReducerContext, player_type: String) {
             }
             PlayerType::Trial => {
                 session.trial_player_count += 1;
+                // Trial players don't contribute to prize pool
             }
         }
         
         let session_id = session.session_id.clone();
         let player_count = session.player_count;
+        let paid_count = session.paid_player_count;
+        let trial_count = session.trial_player_count;
         
         // Use efficient primary key update
         ctx.db.active_game_sessions().id().update(session);
         
-        if is_first_player {
-            log::info!("🎮 First player joined session: {} (starting countdown, type: {:?})", session_id, ptype);
+        if is_first_paid_player {
+            log::info!("🎮 First PAID player started session: {} (paid: {}, trial: {})", session_id, paid_count, trial_count);
+        } else if is_first_player {
+            log::info!("🎮 First TRIAL player joined session: {} (status: Waiting, trial: {})", session_id, trial_count);
         } else {
-            log::info!("🎮 Player joined session: {} (total: {}, type: {:?})", session_id, player_count, ptype);
+            log::info!("🎮 Player joined session: {} (total: {}, paid: {}, trial: {}, status: {:?})", 
+                      session_id, player_count, paid_count, trial_count, session.status);
         }
     } else {
         log::warn!("⚠️ No active session found to join");
