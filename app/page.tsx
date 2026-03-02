@@ -192,23 +192,9 @@ export default function Home() {
   };
 
   const handlePaymentComplete = () => {
-    // Reset all game state before starting paid game
-    setGameCompleted(false);
-    setScore(0);
-    setTotalScore(0);
-    setCurrentRound(1);
-    setQuestionNumberInRound(1);
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setCurrentQuestion(null);
-    setGameError(null);
-    setCorrectAnswers(0);
-    setTotalQuestionsAnswered(0);
-    
+    // Payment (funding) complete: only close the payment screen.
+    // User must click Join Game then Start to run approve + joinBattle and get a transaction hash.
     setShowPayment(false);
-    setIsTrialGame(false);
-    setGameStarted(true);
-    loadRandomQuestion();
   };
 
   const handlePlayAgainPaid = async () => {
@@ -435,6 +421,36 @@ export default function Home() {
       }
     };
   }, [session, playerId, leaveGame]);
+
+  // Persist paid game score to SpacetimeDB so it appears on the homepage leaderboard
+  const paidScoreSavedRef = useRef(false);
+  useEffect(() => {
+    if (!gameCompleted || isTrialGame || !address || paidScoreSavedRef.current) return;
+    paidScoreSavedRef.current = true;
+    const savePaidScore = async () => {
+      try {
+        const res = await fetch('/api/save-paid-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: address, finalScore: totalScore }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Failed to save paid score:', err?.error ?? res.statusText);
+        }
+      } catch (err) {
+        console.error('Error saving paid score:', err);
+      }
+    };
+    void savePaidScore();
+  }, [gameCompleted, isTrialGame, address, totalScore]);
+
+  // Reset paid score saved ref when starting a new game so next completion can persist
+  useEffect(() => {
+    if (!gameStarted && !gameCompleted) {
+      paidScoreSavedRef.current = false;
+    }
+  }, [gameStarted, gameCompleted]);
 
   // Determine what to display in the timer area
   const getTimerDisplay = () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spacetimeClient } from '@/lib/apis/spacetime';
 import { signEntryToken } from '@/lib/utils/jwt';
+import { verifyPaidTxHash } from '@/lib/blockchain/verifyPaidTx';
 
 // Naive sign/verify using a random token cookie for anon users.
 // In production, replace with JWT and proper signing/rotation.
@@ -30,7 +31,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'sessionId required' }, { status: 400 });
     }
 
-    // Determine identity
+    // Require JWT signing secret in production to prevent forged entry tokens
+    if (process.env.NODE_ENV === 'production' && !process.env.ENTRY_TOKEN_SECRET) {
+      console.error('ENTRY_TOKEN_SECRET is required in production');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
     let anonId: string | undefined;
     const { anonId: ensuredAnon, resHeaders } = getOrSetAnonId(req);
     if (!walletAddress) {
@@ -54,9 +62,19 @@ export async function POST(req: NextRequest) {
         console.log(`🎯 Trial entry for anonymous: ${anonId}`);
       }
     } else {
-      // Paid: expect a tx hash presence now, full verification can be added later
+      // Paid: require wallet and tx hash; verify on-chain before issuing JWT
       if (!walletAddress) {
         return NextResponse.json({ error: 'walletAddress required for paid entry' }, { status: 400, headers: resHeaders });
+      }
+      if (!paidTxHash || typeof paidTxHash !== 'string' || !paidTxHash.trim()) {
+        return NextResponse.json({ error: 'paidTxHash required for paid entry' }, { status: 400, headers: resHeaders });
+      }
+      const verification = await verifyPaidTxHash(paidTxHash.trim(), walletAddress);
+      if (!verification.ok) {
+        return NextResponse.json(
+          { error: verification.error ?? 'Paid transaction could not be verified' },
+          { status: 400, headers: resHeaders }
+        );
       }
     }
 
