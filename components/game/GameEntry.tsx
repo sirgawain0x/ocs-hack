@@ -271,7 +271,7 @@ export default function GameEntry({ onGameStart, entryToken, className = '', pla
   const handlePaymentSuccess = () => {
     setError(null);
     setShowPayment(false);
-    onGameStart({ isTrial: false });
+    // Do not start the game here: user must click Start to run approve + joinBattle and get a transaction hash.
   };
 
   const handlePaymentError = (errorMessage: string) => {
