@@ -104,7 +104,10 @@ contract TriviaBattle is ReentrancyGuard, Ownable {
      * @param duration Duration of the session in seconds (300 = 5 minutes)
      */
     function startSession(uint256 duration) external onlyOwner {
-        require(!currentSession.isActive, "Session already active");
+        require(
+            !currentSession.isActive || block.timestamp > currentSession.endTime,
+            "Session already active"
+        );
         require(duration > 0, "Invalid duration");
         
         // Reset current session
@@ -412,7 +415,10 @@ contract TriviaBattle is ReentrancyGuard, Ownable {
      * @param duration Duration of the session in seconds
      */
     function _startNewSession(uint256 duration) internal {
-        require(!currentSession.isActive, "Session already active");
+        require(
+            !currentSession.isActive || block.timestamp > currentSession.endTime,
+            "Session already active"
+        );
         require(duration > 0, "Invalid duration");
         
         // Reset current session

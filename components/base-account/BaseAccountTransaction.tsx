@@ -55,21 +55,23 @@ export default function BaseAccountTransaction({
 
       const provider = sdk.getProvider();
 
-      // Send transactions sequentially using Base Account
-      const results = [];
-      for (const call of calls) {
-        const result = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: address,
+      // Batch all calls into a single atomic operation using EIP-5792 wallet_sendCalls.
+      // This ensures approve + joinBattle execute together, preventing
+      // "execution reverted" from the approval not being mined before joinBattle runs.
+      const result = await provider.request({
+        method: 'wallet_sendCalls',
+        params: [{
+          version: '1',
+          from: address,
+          chainId: numberToHex(base.id),
+          calls: calls.map(call => ({
             to: call.to,
             value: call.value,
             data: call.data,
-            chainId: numberToHex(base.id),
-          }]
-        });
-        results.push(result);
-      }
+          })),
+        }]
+      });
+      const results = [result];
 
       console.log('Transactions sent:', results);
       setStatus('success');
