@@ -159,9 +159,7 @@ contract TriviaBattle is ReentrancyGuard, Ownable, IReceiver {
     /// @notice Paid entry: if no session is active, opens one when allowed (same rules as startNewSession), then takes USDC and registers the player.
     /// @dev Lets players start without an owner tx. Solo players can pay again: this closes their session, distributes prizes, opens a new session, then takes the new entry fee (arcade-style replay).
     function joinBattle() external nonReentrant {
-        if (
-            isSessionActive && hasParticipated[msg.sender] && players.length == 1 && players[0] == msg.sender
-        ) {
+        if (isSessionActive && hasParticipated[msg.sender] && players.length == 1 && players[0] == msg.sender) {
             isSessionActive = false;
             _distributePrizes();
             _openNewSession();
