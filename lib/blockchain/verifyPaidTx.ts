@@ -2,18 +2,16 @@
  * Server-side verification that a paid game entry transaction is valid on-chain.
  * Confirms the tx succeeded, was sent by the given wallet (or alternate Base universal
  * account), and involved the Trivia contract (direct joinBattle call or PlayerJoined event).
+ *
+ * Uses multiple RPC URLs in order: Alchemy/custom endpoints sometimes return plain-text
+ * errors (invalid key, quota) that break JSON-RPC parsing — we fall back to Base public RPC.
  */
 
-import { createPublicClient, http, decodeEventLog, encodeFunctionData } from 'viem';
+import { createPublicClient, http, decodeEventLog, encodeFunctionData, type Hash } from 'viem';
 import { base } from 'viem/chains';
 import { TRIVIA_CONTRACT_ADDRESS, TRIVIA_ABI } from '@/lib/blockchain/contracts';
 
-const RPC_URL = process.env.BASE_RPC_URL || process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org';
-
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(RPC_URL),
-});
+const DEFAULT_BASE_PUBLIC_RPC = 'https://mainnet.base.org';
 
 const JOIN_BATTLE_SELECTOR = (() => {
   const data = encodeFunctionData({
@@ -29,6 +27,90 @@ function normalizeAddress(addr: string): string {
   if (!addr || typeof addr !== 'string') return '';
   const a = addr.trim();
   return a.startsWith('0x') ? a.toLowerCase() : `0x${a}`.toLowerCase();
+}
+
+/**
+ * RPCs for paid-tx verification (deduped).
+ * Base public RPC is tried early — some Alchemy responses are incomplete (zero blockHash, EntryPoint-only logs).
+ */
+function getPaidVerificationRpcUrls(): string[] {
+  const raw = [
+    process.env.PAID_VERIFY_RPC_URL,
+    DEFAULT_BASE_PUBLIC_RPC,
+    process.env.BASE_RPC_URL,
+    process.env.NEXT_PUBLIC_BASE_RPC_URL,
+  ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0);
+  return [...new Set(raw.map((u) => u.trim()))];
+}
+
+const ZERO_BLOCK_HASH =
+  '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
+
+/** Some providers (e.g. Alchemy) occasionally return a stub receipt: status success but blockHash zeros and only EntryPoint logs — not enough to verify joinBattle. */
+function receiptMissingTriviaLogs(
+  receipt: { logs: ReadonlyArray<{ address: string }> },
+  triviaNorm: string
+): boolean {
+  return !receipt.logs.some((l) => normalizeAddress(l.address) === triviaNorm);
+}
+
+function receiptBlockRefLooksInvalid(receipt: { blockHash?: string | null }): boolean {
+  const bh = receipt.blockHash;
+  return !bh || bh === ZERO_BLOCK_HASH;
+}
+
+function isDirectTriviaJoinCall(
+  transaction: { to?: string | null; input?: string },
+  triviaNorm: string
+): boolean {
+  return !!(
+    transaction.to &&
+    normalizeAddress(transaction.to) === triviaNorm &&
+    transaction.input &&
+    transaction.input.toLowerCase().startsWith(JOIN_BATTLE_SELECTOR)
+  );
+}
+
+async function getReceiptAndTransaction(hash: Hash) {
+  const urls = getPaidVerificationRpcUrls();
+  const triviaNorm = normalizeAddress(TRIVIA_CONTRACT_ADDRESS);
+  let lastMessage = 'All RPC endpoints failed';
+
+  for (const url of urls) {
+    try {
+      const client = createPublicClient({
+        chain: base,
+        transport: http(url, { timeout: 25_000 }),
+      });
+      const [receipt, transaction] = await Promise.all([
+        client.getTransactionReceipt({ hash }),
+        client.getTransaction({ hash }),
+      ]);
+
+      if (receipt.status !== 'success') {
+        lastMessage = 'Transaction did not succeed on-chain';
+        continue;
+      }
+
+      const badBlock = receiptBlockRefLooksInvalid(receipt);
+      const noTriviaLogs = receiptMissingTriviaLogs(receipt, triviaNorm);
+      const directJoin = isDirectTriviaJoinCall(transaction, triviaNorm);
+
+      // Stub AA receipts: success + zero block hash and/or no Trivia logs when tx is bundled via EntryPoint.
+      if (badBlock || (noTriviaLogs && !directJoin)) {
+        lastMessage =
+          'RPC returned an incomplete receipt (missing block hash or Trivia logs for a bundled tx); trying another endpoint';
+        continue;
+      }
+
+      return { receipt, transaction };
+    } catch (e) {
+      lastMessage = e instanceof Error ? e.message : String(e);
+      continue;
+    }
+  }
+
+  throw new Error(lastMessage);
 }
 
 function uniqueCandidates(primary: string, alternate?: string): string[] {
@@ -74,12 +156,28 @@ export async function verifyPaidTxHash(
     return { ok: false, error: 'Invalid transaction hash format' };
   }
 
-  try {
-    const [receipt, transaction] = await Promise.all([
-      publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` }),
-      publicClient.getTransaction({ hash: txHash as `0x${string}` }),
-    ]);
+  const hash = txHash as Hash;
 
+  const loaded = await (async () => {
+    try {
+      const data = await getReceiptAndTransaction(hash);
+      return { ok: true as const, data };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return {
+        ok: false as const,
+        error: `Could not load transaction from RPC (${message}). If you already paid, try again in a moment — verification will retry other RPCs. You can set PAID_VERIFY_RPC_URL or use a working BASE_RPC_URL.`,
+      };
+    }
+  })();
+
+  if (!loaded.ok) {
+    return { ok: false, error: loaded.error };
+  }
+
+  const { receipt, transaction } = loaded.data;
+
+  try {
     if (!receipt) {
       return { ok: false, error: 'Transaction not found (may still be pending)' };
     }
