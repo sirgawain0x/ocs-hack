@@ -545,6 +545,9 @@ export default function SpacetimeTriviaGame({ className = '', onWalletConnect, o
         playerName="Player"
         isGuest={false}
         isTrialGame={gameState.isTrialPlayer}
+        walletAddress={
+          gameState.isTrialPlayer ? undefined : address ? String(address) : undefined
+        }
         onBackToEntry={() => {
           if (onBack) {
             onBack();

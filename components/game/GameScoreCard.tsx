@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trophy, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Confetti } from '@neoconfetti/react';
@@ -15,6 +15,8 @@ interface GameScoreCardProps {
   isGuest?: boolean;
   guestId?: string;
   isTrialGame: boolean;
+  /** Paid games: wallet for leaderboard persistence (Spacetime via /api/save-paid-score). */
+  walletAddress?: string;
   onPlayAgain?: () => void;
   onBackToEntry: () => void;
   className?: string;
@@ -29,11 +31,31 @@ export default function GameScoreCard({
   isGuest = false,
   guestId,
   isTrialGame,
+  walletAddress,
   onPlayAgain,
   onBackToEntry,
   className = '',
 }: GameScoreCardProps) {
   const [showConfetti, setShowConfetti] = useState(false);
+  const paidScoreSavedRef = useRef(false);
+
+  useEffect(() => {
+    if (isTrialGame || !walletAddress || !Number.isFinite(finalScore) || finalScore < 0) return;
+    if (paidScoreSavedRef.current) return;
+    paidScoreSavedRef.current = true;
+    void (async () => {
+      try {
+        const res = await fetch('/api/save-paid-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress, finalScore }),
+        });
+        if (!res.ok) paidScoreSavedRef.current = false;
+      } catch {
+        paidScoreSavedRef.current = false;
+      }
+    })();
+  }, [isTrialGame, walletAddress, finalScore]);
 
   // Show confetti when component mounts
   useEffect(() => {
@@ -94,8 +116,8 @@ export default function GameScoreCard({
             <div className="text-amber-300 text-sm">
               <p className="font-medium mb-2">🎮 Practice Game Results</p>
               <p className="text-amber-200/80">
-                This was a practice game. Your score won't qualify for prizes from the prize pool.
-                Connect your wallet to play for real money and compete for prizes!
+                Practice run — this score is not added to the paid leaderboard. Connect your wallet to
+                play for real money and compete for prizes.
               </p>
             </div>
           </div>
@@ -107,7 +129,7 @@ export default function GameScoreCard({
             <div className="text-green-300 text-sm">
               <p className="font-medium mb-2">🏆 Prize Pool Entry</p>
               <p className="text-green-200/80">
-                Your score qualifies for prizes! You'll be entered into the prize pool distribution.
+                Your score is saved for the paid leaderboard and prize pool eligibility.
               </p>
             </div>
           </div>
@@ -121,6 +143,7 @@ export default function GameScoreCard({
             isGuest={isGuest}
             guestId={guestId}
             isTrialGame={isTrialGame}
+            walletAddress={!isTrialGame ? walletAddress : undefined}
             className="w-full"
           />
         </div>

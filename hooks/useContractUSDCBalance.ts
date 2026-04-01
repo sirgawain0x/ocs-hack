@@ -158,12 +158,21 @@ export function useContractUSDCBalance() {
     if (provider) {
       fetchContractData();
       
-      // Set up periodic refetch every 10 seconds
-      const interval = setInterval(fetchContractData, 10000);
+      // Refetch often so the entry-fee pot visibly updates after each paid join
+      const interval = setInterval(fetchContractData, 5000);
       
       return () => clearInterval(interval);
     }
   }, [fetchContractData, provider]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onFocus = () => {
+      if (provider) fetchContractData();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [provider, fetchContractData]);
 
   useEffect(() => {
     if (state.error) {

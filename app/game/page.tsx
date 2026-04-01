@@ -22,6 +22,7 @@ import type { ActivePlayer } from '@/hooks/useActivePlayers';
 import ComposeCastButton from '@/components/social/ComposeCastButton';
 import { MiniAppActions } from '@/components/minikit/MiniAppActions';
 import SocialProfileViewer from '@/components/social/SocialProfileViewer';
+import { useBaseAccount } from '@/hooks/useBaseAccount';
 
 export default function Game() {
   const router = useRouter();
@@ -52,6 +53,9 @@ export default function Game() {
   const [highScores, setHighScores] = useState<Array<{score: number}>>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<ActivePlayer | null>(null);
   const [showPlayerProfile, setShowPlayerProfile] = useState(false);
+  const [sessionIsTrial, setSessionIsTrial] = useState(false);
+  const { address } = useBaseAccount();
+  const paidScoreSavedRef = useRef(false);
 
   const loadRandomQuestion = useCallback(async () => {
     setIsLoading(true);
@@ -294,6 +298,8 @@ export default function Game() {
   const handleGameStart = async ({ isTrial, paidTxHash, playerMode }: GameStartOptions) => {
     try {
       await joinGame(!isTrial, paidTxHash, { playerMode: playerMode ?? 'paid_solo' });
+      setSessionIsTrial(isTrial);
+      paidScoreSavedRef.current = false;
       setGameStarted(true);
       fetchHighScores();
       loadRandomQuestion();
@@ -317,6 +323,8 @@ export default function Game() {
   const handleGuestStart = async (name: string) => {
     setGuestName(name);
     setIsGuestMode(true);
+    setSessionIsTrial(true);
+    paidScoreSavedRef.current = false;
     await GuestSessionManager.createGuestPlayer(name);
     setShowGuestMode(false);
     setGameStarted(true);
@@ -350,6 +358,26 @@ export default function Game() {
       }
     }
   }, [gameCompleted, isGuestMode, pendingGuestSync, totalScore, currentRound, questionsPerRound]);
+
+  useEffect(() => {
+    if (!gameCompleted || isGuestMode || sessionIsTrial || !address) return;
+    if (paidScoreSavedRef.current) return;
+    paidScoreSavedRef.current = true;
+    const wallet = address;
+    const finalScore = totalScore;
+    void (async () => {
+      try {
+        const res = await fetch('/api/save-paid-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: wallet, finalScore }),
+        });
+        if (!res.ok) paidScoreSavedRef.current = false;
+      } catch {
+        paidScoreSavedRef.current = false;
+      }
+    })();
+  }, [gameCompleted, isGuestMode, sessionIsTrial, address, totalScore]);
 
   // Show guest mode entry screen first
   if (showGuestMode) {
@@ -420,6 +448,10 @@ export default function Game() {
               playerName={isGuestMode ? guestName : 'Player'}
               isGuest={isGuestMode}
               guestId={isGuestMode ? GuestSessionManager.getGuestPlayer()?.id : undefined}
+              isTrialGame={isGuestMode || sessionIsTrial}
+              walletAddress={
+                !isGuestMode && !sessionIsTrial && address ? address : undefined
+              }
               className="w-full"
             />
           </div>
@@ -463,6 +495,7 @@ export default function Game() {
                 setScore(0);
                 setTotalScore(0);
                 setGameCompleted(false);
+                paidScoreSavedRef.current = false;
                 setGameStarted(false); // Reset to entry screen
               }}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"

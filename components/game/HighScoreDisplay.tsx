@@ -18,6 +18,8 @@ interface HighScoreDisplayProps {
   isGuest: boolean;
   guestId?: string;
   isTrialGame?: boolean;
+  /** Paid games only: ties score to wallet for high-scores API (not used for trial). */
+  walletAddress?: string;
   className?: string;
 }
 
@@ -27,6 +29,7 @@ export default function HighScoreDisplay({
   isGuest, 
   guestId,
   isTrialGame = false,
+  walletAddress,
   className = '' 
 }: HighScoreDisplayProps) {
   const { highScores, getCurrentHighScore, getPlayerRank, submitScore } = useHighScores();
@@ -48,29 +51,47 @@ export default function HighScoreDisplay({
     refreshWinnings();
   };
 
-  // Auto-submit score when component mounts (for completed games)
+  // Paid games only: submit to high-scores API. Trial/practice never hits the leaderboard.
   useEffect(() => {
-    if (currentScore > 0 && !hasSubmitted) {
-      const submitCurrentScore = async () => {
-        const result = await submitScore(playerName, currentScore, isGuest, guestId);
-        if (result) {
-          setHasSubmitted(true);
-          setSubmissionResult({
-            isNewHighScore: result.isNewHighScore,
-            rank: result.rank
-          });
-          
-          // Trigger confetti for new high scores
-          if (result.isNewHighScore) {
-            setShowConfetti(true);
-            // Auto-hide confetti after animation completes
-            setTimeout(() => setShowConfetti(false), 4000);
-          }
-        }
-      };
-      submitCurrentScore();
+    if (currentScore <= 0 || hasSubmitted) return;
+
+    if (isTrialGame) {
+      setHasSubmitted(true);
+      return;
     }
-  }, [currentScore, playerName, isGuest, guestId, hasSubmitted, submitScore]);
+
+    const submitCurrentScore = async () => {
+      const result = await submitScore(
+        playerName,
+        currentScore,
+        isGuest,
+        guestId,
+        walletAddress
+      );
+      if (result) {
+        setHasSubmitted(true);
+        setSubmissionResult({
+          isNewHighScore: result.isNewHighScore,
+          rank: result.rank,
+        });
+
+        if (result.isNewHighScore) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 4000);
+        }
+      }
+    };
+    submitCurrentScore();
+  }, [
+    currentScore,
+    playerName,
+    isGuest,
+    guestId,
+    walletAddress,
+    isTrialGame,
+    hasSubmitted,
+    submitScore,
+  ]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -133,6 +154,12 @@ export default function HighScoreDisplay({
 
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-800 mb-2">High Scores</h3>
+
+        {isTrialGame && currentScore > 0 && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mb-3">
+            Practice run — this score is not added to the paid leaderboard.
+          </p>
+        )}
         
         {/* Current Player Status */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
@@ -146,14 +173,14 @@ export default function HighScoreDisplay({
               </p>
             </div>
             <div className="text-right">
-              {isHighestScore && currentScore > 0 && (
+              {!isTrialGame && isHighestScore && currentScore > 0 && (
                 <div className="flex items-center text-yellow-600 mb-1">
                   <Crown className="h-4 w-4 mr-1" />
                   <span className="text-xs font-bold">HIGHEST SCORE!</span>
                 </div>
               )}
               <p className="text-sm text-blue-600">
-                Rank: #{playerRank}
+                {isTrialGame ? 'Rank: — (practice)' : `Rank: #${playerRank}`}
               </p>
             </div>
           </div>

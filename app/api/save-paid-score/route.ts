@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spacetimeClient } from '@/lib/apis/spacetime';
 
+/** Paid games only. Trial / practice scores must not call this route (TOP EARNERS / Spacetime bestScore). */
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

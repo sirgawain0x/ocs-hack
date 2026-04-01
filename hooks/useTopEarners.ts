@@ -70,9 +70,9 @@ export const useTopEarners = (
         let filteredPlayers: Player[];
         
         if (viewType === 'scores') {
-          // Filter players with scores > 0 and sort by bestScore
+          // Paid leaderboard: best scores come from /api/save-paid-score (gamesPlayed increments on paid completion only)
           filteredPlayers = (Array.from(connection.db.players.iter()) as Player[])
-            .filter((p: Player) => p.bestScore > 0);
+            .filter((p: Player) => p.bestScore > 0 && p.gamesPlayed > 0);
         } else {
           // Filter players with earnings > 0 and sort by totalEarnings
           filteredPlayers = (Array.from(connection.db.players.iter()) as Player[])

@@ -26,6 +26,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { isLobbySessionStatus } from '@/lib/utils/gameSessionStatus';
 import BaseAccountButton from '@/components/base-account/BaseAccountButton';
+import { ENTRY_FEE_USDC } from '@/lib/blockchain/contracts';
 
 function HomePage() {
   const { session, timeRemaining, lobbyTimeRemaining, canJoin, isLoading, waitingForPaidPlayer, playerId, entryToken, joinGame, leaveGame, endLobby, syncLobbyDuration, refetch } = useGameSession();
@@ -56,15 +57,23 @@ function HomePage() {
   const questionsPerRound = 10;
   const [questionNumberInRound, setQuestionNumberInRound] = useState(1);
   const [gameCompleted, setGameCompleted] = useState(false);
+  const [completedAsTrial, setCompletedAsTrial] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const timerTriggeredRef = useRef(false);
+  const lastGameWasPaidRef = useRef(false);
+  const paidScoreSavedRef = useRef(false);
   // Add trial status hook
   const { address } = useBaseAccount();
   const [joinGameStartError, setJoinGameStartError] = useState<string | null>(null);
   const { trialStatus, incrementTrialGame } = useTrialStatus(address as string, entryToken ?? undefined);
   
   // Add contract USDC balance hook
-  const { balance: contractUSDCBalance, isLoading: contractBalanceLoading, error: contractBalanceError } = useContractUSDCBalance();
+  const {
+    balance: contractUSDCBalance,
+    isLoading: contractBalanceLoading,
+    error: contractBalanceError,
+    refreshBalance: refreshContractUsdcBalance,
+  } = useContractUSDCBalance();
 
   // Automatically switch to paid solo if trial is exhausted
   useEffect(() => {
@@ -84,6 +93,36 @@ function HomePage() {
       setPlayerModeChoice('paid_multiplayer');
     }
   }, [searchParams]);
+
+  // Persist paid run to Spacetime (TOP EARNERS / bestScore). Trial scores never call this.
+  useEffect(() => {
+    if (!gameCompleted || !lastGameWasPaidRef.current || !address) return;
+    if (paidScoreSavedRef.current) return;
+    paidScoreSavedRef.current = true;
+    const finalScore = totalScore;
+    const wallet = address;
+    void (async () => {
+      try {
+        const res = await fetch('/api/save-paid-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: wallet,
+            finalScore,
+          }),
+        });
+        if (!res.ok) {
+          paidScoreSavedRef.current = false;
+          console.error('save-paid-score failed', await res.text());
+          return;
+        }
+        refreshContractUsdcBalance();
+      } catch (e) {
+        paidScoreSavedRef.current = false;
+        console.error('save-paid-score error', e);
+      }
+    })();
+  }, [gameCompleted, address, totalScore, refreshContractUsdcBalance]);
 
   const loadRandomQuestion = useCallback(async () => {
     setGameLoading(true);
@@ -158,6 +197,7 @@ function HomePage() {
 
   const handleGuestStart = async (name: string) => {
     try {
+      lastGameWasPaidRef.current = false;
       // Join the game session as a trial player
       await joinGame(false);
       setGuestName(name);
@@ -203,15 +243,19 @@ function HomePage() {
         lobbyDurationSec: 180,
         walletUniversalAddress: walletUniversalAddress ?? undefined,
       });
+      lastGameWasPaidRef.current = !isTrial;
       setIsTrialGame(isTrial);
+      setCompletedAsTrial(false);
       setShowGameEntry(false);
       const sess = data?.session;
       if (playerMode === 'paid_multiplayer' && isLobbySessionStatus(sess)) {
         setInMultiplayerLobby(true);
+        if (!isTrial) refreshContractUsdcBalance();
         return;
       }
       setInMultiplayerLobby(false);
       setGameStarted(true);
+      if (!isTrial) refreshContractUsdcBalance();
       loadRandomQuestion();
     } catch (error) {
       console.error('Error joining game:', error);
@@ -237,12 +281,15 @@ function HomePage() {
       setShowPayment(false);
       setGameStarted(false);
       setIsGuestMode(false);
-      // Don't reset isTrialGame here - let the trial completion logic handle it
       setGameCompleted(false);
+      setCompletedAsTrial(false);
+      paidScoreSavedRef.current = false;
+      lastGameWasPaidRef.current = false;
       setScore(0);
       setTotalScore(0);
       setCurrentRound(1);
       setQuestionNumberInRound(1);
+      refreshContractUsdcBalance();
     }
   };
 
@@ -279,10 +326,10 @@ function HomePage() {
       } else {
         // Game completed - update trial status if this was a trial game
         if (isTrialGame) {
+          setCompletedAsTrial(true);
           try {
             console.log('🎯 Trial game completed, updating trial status...');
             await incrementTrialGame();
-            // Update local state to reflect trial has been used
             setIsTrialGame(false);
             console.log('✅ Trial status updated, new status:', trialStatus);
           } catch (error) {
@@ -635,16 +682,20 @@ function HomePage() {
               <h1 className="text-3xl font-bold mb-4">Game Complete!</h1>
               <div className="text-2xl mb-2">Final Score: {totalScore}</div>
               <div className="text-gray-400 mb-4">
-                {isTrialGame ? (isGuestMode ? `Trial Player: ${guestName}` : 'Trial Player') : 'Paid Player'}
+                {completedAsTrial
+                  ? isGuestMode
+                    ? `Trial Player: ${guestName}`
+                    : 'Trial Player'
+                  : 'Paid Player'}
               </div>
 
               {/* Trial Player Notice */}
-              {isTrialGame && (
+              {completedAsTrial && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
                   <div className="text-amber-300 text-sm">
                     <p className="font-medium mb-2">🎮 Trial Game Results</p>
                     <p className="text-amber-200/80">
-                      {`This was a practice game. Your score won't qualify for prizes from the prize pool. Connect your wallet to play for real money and compete for prizes!`}
+                      {`This was a practice game. Your score is not added to the paid leaderboard. Connect your wallet to play for real money and compete for prizes!`}
                     </p>
                   </div>
                 </div>
@@ -682,18 +733,19 @@ function HomePage() {
                   currentScore={totalScore}
                   playerName={isGuestMode ? guestName : 'Player'}
                   isGuest={isGuestMode}
-                  isTrialGame={isTrialGame}
+                  isTrialGame={completedAsTrial}
+                  walletAddress={!completedAsTrial && address ? address : undefined}
                   className="w-full"
                 />
               </div>
 
               {/* Paid Player Success */}
-              {!isTrialGame && (
+              {!completedAsTrial && (
                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
                   <div className="text-green-300 text-sm">
                     <p className="font-medium mb-2">🏆 Prize Pool Entry</p>
                     <p className="text-green-200/80">
-                      {`Your score qualifies for prizes! You'll be entered into the prize pool distribution.`}
+                      Your score is saved for the paid leaderboard and prize pool eligibility.
                     </p>
                   </div>
                 </div>
@@ -1045,6 +1097,9 @@ function HomePage() {
                       )}
                     </p>
                   </div>
+                  <p className="font-['Audiowide:Regular',_sans-serif] text-[#000000] text-[9px] leading-snug max-w-full">
+                    On-chain prize pot (USDC held by the game contract). Grows by {ENTRY_FEE_USDC} USDC per paid entry. Updates every few seconds.
+                  </p>
                   <div className="content-stretch flex gap-4 items-center justify-start relative shrink-0 w-full" data-node-id="3:161">
                     <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#000000] text-[8px] text-nowrap" data-node-id="3:159">
                       <p className="leading-[normal] whitespace-pre">
@@ -1064,9 +1119,12 @@ function HomePage() {
           
           {/* Container for the TOP EARNERS section */}
           <div className="flex flex-col items-center w-full">
-            <h2 className="text-white text-lg font-['Audiowide:Regular',_sans-serif] mb-4">
+            <h2 className="text-white text-lg font-['Audiowide:Regular',_sans-serif] mb-1">
               TOP EARNERS
             </h2>
+            <p className="text-gray-400 text-[10px] font-['Audiowide:Regular',_sans-serif] mb-3 text-center max-w-[328px]">
+              Paid games only — practice / trial scores are not listed
+            </p>
             <div className="w-full max-w-[328px]">
               <TopEarners limit={10} />
             </div>
