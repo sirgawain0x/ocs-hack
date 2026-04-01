@@ -9,7 +9,7 @@ const THIRDWEB_API_BASE = 'https://api.thirdweb.com/v1';
 const API_KEY = process.env.THIRDWEB_API_KEY || process.env.NEXT_PUBLIC_THIRDWEB_API_KEY;
 
 // Contract addresses (Base Mainnet)
-const TRIVIA_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TRIVIA_CONTRACT_ADDRESS || '0xd8F082fa4EF6a4C59F8366c19a196d488485682b';
+const TRIVIA_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TRIVIA_CONTRACT_ADDRESS || '0xfF52Ed1DEb46C197aD7fce9DEC93ff9e987f8dB6';
 const USDC_CONTRACT_ADDRESS = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
 
 // Base Mainnet Chain ID
