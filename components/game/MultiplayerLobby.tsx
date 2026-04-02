@@ -68,6 +68,7 @@ export default function MultiplayerLobby({
       // Lobby ended successfully — transition to gameplay immediately
       // instead of relying on useEffect to detect the status change,
       // which can miss due to SpacetimeDB subscription cache staleness.
+      lobbySeenRef.current = false;
       onRoundStart();
     } catch {
       lobbyEndRequestedRef.current = false;
