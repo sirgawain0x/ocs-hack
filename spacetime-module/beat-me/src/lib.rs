@@ -1286,7 +1286,13 @@ pub fn update_trial_status(ctx: &ReducerContext, wallet_address: String, trial_g
 #[spacetimedb::reducer]
 pub fn create_game_entry(ctx: &ReducerContext, session_id: String, wallet_address: Option<String>, anon_id: Option<String>, is_trial: bool, paid_tx_hash: Option<String>) {
     log::info!("🎮 Creating game entry: {} (wallet: {:?}, anon: {:?}, trial: {})", session_id, wallet_address, anon_id, is_trial);
-    
+
+    // Check for existing entry to prevent unique constraint panic
+    if ctx.db.game_entries().session_id().find(&session_id).is_some() {
+        log::info!("⚠️ Game entry already exists for session: {}", session_id);
+        return;
+    }
+
     ctx.db.game_entries().insert(GameEntry {
         id: 0,
         session_id: session_id.clone(),
@@ -1298,7 +1304,7 @@ pub fn create_game_entry(ctx: &ReducerContext, session_id: String, wallet_addres
         verified_at: ctx.timestamp,
         created_at: ctx.timestamp,
     });
-    
+
     log::info!("✅ Game entry created: {}", session_id);
 }
 
