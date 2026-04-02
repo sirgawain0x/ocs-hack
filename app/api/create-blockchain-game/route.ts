@@ -10,23 +10,26 @@ const publicClient = createPublicClient({
   transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
 });
 
-// Create wallet client for contract owner operations
-const account = privateKeyToAccount(process.env.CONTRACT_OWNER_PRIVATE_KEY as `0x${string}`);
-const walletClient = createWalletClient({
-  account,
-  chain: base,
-  transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
-});
+function getWalletClient() {
+  const key = process.env.CONTRACT_OWNER_PRIVATE_KEY;
+  if (!key) throw new Error('CONTRACT_OWNER_PRIVATE_KEY is missing');
+  const account = privateKeyToAccount(key as `0x${string}`);
+  return createWalletClient({
+    account,
+    chain: base,
+    transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
     console.log('🎮 Creating blockchain game session...');
-    
+
     // Validate environment variables
     if (!process.env.CONTRACT_OWNER_PRIVATE_KEY) {
       console.error('❌ CONTRACT_OWNER_PRIVATE_KEY is missing');
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: 'Server configuration error',
           details: 'CONTRACT_OWNER_PRIVATE_KEY environment variable is missing'
@@ -34,6 +37,8 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    const walletClient = getWalletClient();
     
     // Check if there's already an active session
     const isSessionActive = await publicClient.readContract({
