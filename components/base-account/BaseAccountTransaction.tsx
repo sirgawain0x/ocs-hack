@@ -82,24 +82,51 @@ const BaseAccountTransaction = forwardRef<BaseAccountTransactionHandle, BaseAcco
 
       const provider = sdk.getProvider();
 
-      // Smart accounts (4337): each user op bumps the account nonce on-chain only after
-      // inclusion. Sending approve + joinBattle back-to-back causes AA25 invalid account nonce
-      // on the second op — wait for each receipt before the next send.
-      const results: string[] = [];
-      for (let i = 0; i < calls.length; i++) {
-        const call = calls[i];
+      // Smart accounts (4337): batch all calls into a single user operation
+      // via wallet_sendCalls (EIP-5792) to avoid AA25 nonce errors that occur
+      // when sending sequential eth_sendTransaction calls.
+      let lastTxHash: string | undefined;
+
+      if (calls.length > 1) {
+        // Batch via wallet_sendCalls — single user operation, no nonce issues
+        const batchResult = (await provider.request({
+          method: 'wallet_sendCalls',
+          params: {
+            calls: calls.map(call => ({
+              to: call.to,
+              data: call.data,
+              value: call.value || '0x0',
+            })),
+            from: address,
+            chainId: numberToHex(base.id),
+            atomicRequired: true,
+          },
+        })) as string;
+
+        // wallet_sendCalls returns a bundle ID; wait for on-chain confirmation
+        const receipt = await basePublicClient.waitForTransactionReceipt({
+          hash: batchResult as Hex,
+          timeout: 180_000,
+        });
+
+        if (receipt.status !== 'success') {
+          throw new Error('Batch transaction reverted on-chain. Try again in a moment.');
+        }
+
+        lastTxHash = batchResult;
+        console.log('Batch transaction confirmed:', batchResult);
+      } else if (calls.length === 1) {
+        // Single call — use eth_sendTransaction directly
         const result = (await provider.request({
           method: 'eth_sendTransaction',
           params: [{
             from: address,
-            to: call.to,
-            value: call.value,
-            data: call.data,
+            to: calls[0].to,
+            value: calls[0].value,
+            data: calls[0].data,
             chainId: numberToHex(base.id),
-          }]
+          }],
         })) as Hex;
-
-        results.push(result);
 
         const receipt = await basePublicClient.waitForTransactionReceipt({
           hash: result,
@@ -107,14 +134,12 @@ const BaseAccountTransaction = forwardRef<BaseAccountTransactionHandle, BaseAcco
         });
 
         if (receipt.status !== 'success') {
-          throw new Error(
-            `Transaction ${i + 1} of ${calls.length} reverted on-chain. Try again in a moment.`
-          );
+          throw new Error('Transaction reverted on-chain. Try again in a moment.');
         }
-      }
 
-      const lastTxHash = results.length > 0 ? results[results.length - 1] : undefined;
-      console.log('Transactions confirmed:', results);
+        lastTxHash = result;
+        console.log('Transaction confirmed:', result);
+      }
       setStatus('success');
       setMessage('Transaction successful!');
       onStatus?.('success', 'Transaction successful!', { lastTxHash });
