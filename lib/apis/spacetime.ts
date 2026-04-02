@@ -136,6 +136,7 @@ class SpacetimeDBClient {
           .onDisconnect(() => {
             console.log('🔌 Disconnected from SpacetimeDB');
             this.isConnected = false;
+            this.connection = null;
           })
           .onConnectError((error) => {
             if (connectionResolved) return;
