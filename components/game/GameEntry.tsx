@@ -166,12 +166,12 @@ export default function GameEntry({
           code: 'AA25_INVALID_NONCE',
           message: 'Invalid smart account nonce',
           userMessage:
-            'Your wallet is still finishing the USDC approval on-chain. Wait a few seconds, then tap Transact again to send the join step. Sponsored gas may require Coinbase Paymaster rules (e.g. Coinbase Verified User) in CDP.',
+            'Your wallet is still finishing the USDC approval on-chain. Wait a few seconds, then tap Transact again to send the join step.',
           recoverable: true,
           retryable: true,
           details: {
             suggestion:
-              'If this keeps happening, confirm the first transaction succeeded in your wallet activity, then retry. Check Paymaster sponsorship rules in CDP.',
+              'If this keeps happening, confirm the first transaction succeeded in your wallet activity, then retry.',
             link: 'https://portal.cdp.coinbase.com/products/bundler-and-paymaster',
           },
         };
