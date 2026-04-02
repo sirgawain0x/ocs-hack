@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+/** Spacetime WebSocket + reducer can exceed default Vercel limits without this. */
+export const maxDuration = 60;
 import { spacetimeClient } from '@/lib/apis/spacetime';
 import {
   buildSpacetimeGameSessionApiPayload,

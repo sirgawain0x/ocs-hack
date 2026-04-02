@@ -8,6 +8,7 @@ import { Identity } from 'spacetimedb';
 
 import {
   buildAppSubscriptionQueries,
+  buildGameSessionOnlySubscriptionQueries,
   type AppSubscriptionTables,
 } from '../spacetime/appSubscriptionQueries';
 
@@ -123,9 +124,12 @@ class SpacetimeDBClient {
               .onApplied(() => {
                 console.log('✅ SpacetimeDB subscription applied');
               })
-              .subscribe((t) =>
-                buildAppSubscriptionQueries(t as unknown as AppSubscriptionTables)
-              );
+              .subscribe((t) => {
+                const tbl = t as unknown as AppSubscriptionTables;
+                return typeof window === 'undefined'
+                  ? buildGameSessionOnlySubscriptionQueries(tbl)
+                  : buildAppSubscriptionQueries(tbl);
+              });
             
             resolve();
           })

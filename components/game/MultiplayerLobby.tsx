@@ -16,6 +16,8 @@ type MultiplayerLobbyProps = {
   onEndLobbyEarly: () => Promise<void>;
   onSyncDuration: (sec: number) => Promise<void>;
   refetch: () => Promise<void>;
+  /** Shown when API calls (e.g. start round) fail */
+  sessionError?: string | null;
 };
 
 const formatAddr = (id: string, wallet?: string) => {
@@ -37,6 +39,7 @@ export default function MultiplayerLobby({
   onEndLobbyEarly,
   onSyncDuration,
   refetch,
+  sessionError,
 }: MultiplayerLobbyProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -52,11 +55,22 @@ export default function MultiplayerLobby({
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const syncedDurationRef = useRef(false);
   const lobbyEndRequestedRef = useRef(false);
+  const endingRoundInFlightRef = useRef(false);
+  const [isEndingRound, setIsEndingRound] = useState(false);
 
-  const requestEndLobby = useCallback(() => {
-    if (lobbyEndRequestedRef.current) return;
+  const requestEndLobby = useCallback(async () => {
+    if (lobbyEndRequestedRef.current || endingRoundInFlightRef.current) return;
+    endingRoundInFlightRef.current = true;
     lobbyEndRequestedRef.current = true;
-    void onEndLobbyEarly();
+    setIsEndingRound(true);
+    try {
+      await onEndLobbyEarly();
+    } catch {
+      lobbyEndRequestedRef.current = false;
+    } finally {
+      endingRoundInFlightRef.current = false;
+      setIsEndingRound(false);
+    }
   }, [onEndLobbyEarly]);
 
   useEffect(() => {
@@ -184,7 +198,7 @@ export default function MultiplayerLobby({
 
     const onEnded = () => {
       setIsPlaying(false);
-      requestEndLobby();
+      void requestEndLobby();
     };
 
     const onPlay = () => setIsPlaying(true);
@@ -467,13 +481,23 @@ export default function MultiplayerLobby({
               </ul>
             </div>
 
+            {sessionError ? (
+              <p
+                className="text-sm text-red-400 text-center rounded-md border border-red-500/40 bg-red-950/40 px-3 py-2"
+                role="alert"
+              >
+                {sessionError}
+              </p>
+            ) : null}
+
             <Button
               type="button"
               className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold"
-              onClick={() => requestEndLobby()}
+              onClick={() => void requestEndLobby()}
+              disabled={isEndingRound}
               aria-label="Start the round now for everyone in this lobby"
             >
-              Start round now
+              {isEndingRound ? 'Starting round…' : 'Start round now'}
             </Button>
 
             <Button

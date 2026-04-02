@@ -29,3 +29,9 @@ export const buildAppSubscriptionQueries = (t: AppSubscriptionTables) => [
   ),
   t.identity_wallet_mapping,
 ];
+
+/** Minimal subscriptions for serverless `/api/game-session` — avoids long initial sync (504 on Vercel). */
+export const buildGameSessionOnlySubscriptionQueries = (t: AppSubscriptionTables) => [
+  t.active_game_sessions,
+  t.pool_players,
+];

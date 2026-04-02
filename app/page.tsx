@@ -29,7 +29,22 @@ import BaseAccountButton from '@/components/base-account/BaseAccountButton';
 import { ENTRY_FEE_USDC } from '@/lib/blockchain/contracts';
 
 function HomePage() {
-  const { session, timeRemaining, lobbyTimeRemaining, canJoin, isLoading, waitingForPaidPlayer, playerId, entryToken, joinGame, leaveGame, endLobby, syncLobbyDuration, refetch } = useGameSession();
+  const {
+    session,
+    timeRemaining,
+    lobbyTimeRemaining,
+    canJoin,
+    isLoading,
+    waitingForPaidPlayer,
+    playerId,
+    entryToken,
+    joinGame,
+    leaveGame,
+    endLobby,
+    syncLobbyDuration,
+    refetch,
+    error: gameSessionError,
+  } = useGameSession();
   const [showGameEntry, setShowGameEntry] = useState(false);
   const [showGuestMode, setShowGuestMode] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -521,6 +536,7 @@ function HomePage() {
         session={session}
         lobbyTimeRemaining={lobbyTimeRemaining}
         inviteUrl={inviteUrl}
+        sessionError={gameSessionError}
         onRoundStart={() => {
           setInMultiplayerLobby(false);
           setGameStarted(true);

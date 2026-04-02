@@ -596,7 +596,9 @@ export default function GameEntry({
                           type="button"
                           className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-medium border-0"
                         >
-                          Transact
+                          {playerModeChoice === 'paid_multiplayer'
+                            ? 'Enter Multiplayer Lobby'
+                            : 'Transact'}
                         </Button>
                       </BaseAccountTransaction>
                       <Button
@@ -615,7 +617,9 @@ export default function GameEntry({
                       style={{ background: 'linear-gradient(to right, #eab308, #f97316)' }}
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      Start Paid Game
+                      {playerModeChoice === 'paid_multiplayer'
+                        ? 'Enter Multiplayer Lobby'
+                        : 'Start paid game'}
                     </Button>
                   )}
                   
