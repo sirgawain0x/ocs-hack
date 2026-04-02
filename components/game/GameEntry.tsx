@@ -162,12 +162,12 @@ export default function GameEntry({
           code: 'AA25_INVALID_NONCE',
           message: 'Invalid smart account nonce',
           userMessage:
-            'Your wallet is still finishing the USDC approval on-chain. Wait a few seconds, then tap Transact again to send the join step. Sponsored gas may require Coinbase Paymaster rules (e.g. Coinbase Verified User) in CDP.',
+            'Your wallet is still finishing the USDC approval on-chain. Wait a few seconds, then tap Transact again to send the join step.',
           recoverable: true,
           retryable: true,
           details: {
             suggestion:
-              'If this keeps happening, confirm the first transaction succeeded in your wallet activity, then retry. Check Paymaster sponsorship rules in CDP.',
+              'If this keeps happening, confirm the first transaction succeeded in your wallet activity, then retry.',
             link: 'https://portal.cdp.coinbase.com/products/bundler-and-paymaster',
           },
         };
@@ -209,7 +209,7 @@ export default function GameEntry({
           code: 'PAYMASTER_ERROR',
           message: 'Transaction rejected by paymaster',
           userMessage:
-            'Unable to sponsor gas. In CDP Bundler & Paymaster, confirm contract allowlists and any wallet rules (e.g. Coinbase Verified User attestation). You can also relax sponsorship rules for testing.',
+            'Unable to sponsor gas. In CDP Bundler & Paymaster, confirm contract allowlists and any wallet rules (e.g. Coinbase Verified User attestation).',
           recoverable: true,
           retryable: false,
           details: {
@@ -594,7 +594,7 @@ export default function GameEntry({
                     className="mb-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-xs text-gray-300"
                     role="status"
                   >
-                    Entry is <span className="text-white font-medium">1 USDC</span> per session. You sign two steps: USDC approval, then join — the app waits for the first to confirm before sending the second (avoids wallet nonce errors). Sponsored gas depends on your CDP Paymaster rules.
+                    Entry is <span className="text-white font-medium">1 USDC</span> per session. You sign two steps: USDC approval, then join.
                   </div>
                   
                   {isProcessingPayment ? (
