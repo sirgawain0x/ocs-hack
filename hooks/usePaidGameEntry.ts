@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt, usePublicClient, useAccount, useWalletClient } from 'wagmi';
+import { useWaitForTransactionReceipt, usePublicClient, useAccount, useWalletClient } from 'wagmi';
 import { useAccountCapabilities } from './useAccountCapabilities';
 import { usePaidGameEntryWithERC20Gas } from './usePaidGameEntryWithERC20Gas';
 import { TRIVIA_ABI, TRIVIA_CONTRACT_ADDRESS, USDC_ABI, USDC_CONTRACT_ADDRESS, ENTRY_FEE_USDC } from '@/lib/blockchain/contracts';
@@ -27,9 +27,8 @@ export function usePaidGameEntry() {
   const [currentStep, setCurrentStep] = useState<TransactionStep>('idle');
   const [finalTxHash, setFinalTxHash] = useState<string | undefined>(undefined);
   const [approvalHash, setApprovalHash] = useState<string | undefined>(undefined);
+  const [txError, setTxError] = useState<Error | null>(null);
 
-  // For EOA (Normal Account) - uses ETH for gas
-  const { error: eoaError } = useWriteContract();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const { address } = useAccount();
@@ -63,6 +62,7 @@ export function usePaidGameEntry() {
   const joinGameEOA = useCallback(async () => {
     setFinalTxHash(undefined);
     setApprovalHash(undefined);
+    setTxError(null);
 
     try {
       if (!publicClient || !address) {
@@ -141,12 +141,14 @@ export function usePaidGameEntry() {
       setCurrentStep('complete');
     } catch (error) {
       console.error('❌ EOA transaction error:', error);
+      setTxError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }, [walletClient, publicClient, address, supportsMagicSpend]);
 
   const joinGameBatch = useCallback(async () => {
     setFinalTxHash(undefined);
+    setTxError(null);
     setCurrentStep('batching_transaction');
 
     try {
@@ -232,6 +234,7 @@ export function usePaidGameEntry() {
 
     } catch (error) {
       console.error('❌ Batch transaction failed:', error);
+      setTxError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     }
   }, [walletClient, address, publicClient, capabilities]);
@@ -281,17 +284,17 @@ export function usePaidGameEntry() {
 
   // Reset step on success/fail
   useEffect(() => {
-    if (result.success || eoaError) {
+    if (result.success || txError) {
       // If error, reset quickly. If success, maybe keep it 'complete' a bit?
       // Keeping existing logic
     }
-  }, [result, eoaError]);
+  }, [result, txError]);
 
 
   return {
     joinGameUniversal,
     result,
-    error: eoaError, // or batch error state if we add it
+    error: txError,
     isSmartAccount: !!supportsAtomicBatch,
     isEOA: !supportsAtomicBatch,
     isLoading: currentStep !== 'idle' && currentStep !== 'complete',

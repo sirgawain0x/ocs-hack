@@ -1,12 +1,12 @@
-import type { Hex } from 'viem';
+import { type Hex, stringToHex } from 'viem';
 
-// Base Builder Code: bc_5l04cy7v
-// ERC-8021 data suffix for transaction attribution
-// Format: <builder_code_hex><8021_marker>
-// - Builder code "bc_5l04cy7v" as ASCII hex: 62635f356c303463793776
-// - ERC-8021 marker (repeated): 80218021802180218021802180218021
-export const BUILDER_CODE_DATA_SUFFIX: Hex =
-  '0x62635f356c30346379377680218021802180218021802180218021';
+// Base Builder Code (ERC-8021 transaction attribution)
+// Derived from env var with fallback to default code
+const BUILDER_CODE = process.env.NEXT_PUBLIC_BUILDER_CODE || 'bc_5l04cy7v';
+const BUILDER_CODE_HEX = stringToHex(BUILDER_CODE).slice(2);
+const ERC8021_MARKER = '80218021802180218021802180218021';
+
+export const BUILDER_CODE_DATA_SUFFIX: Hex = `0x${BUILDER_CODE_HEX}${ERC8021_MARKER}` as Hex;
 
 /**
  * Appends the ERC-8021 builder code suffix to transaction calldata.
