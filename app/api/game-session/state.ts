@@ -5,12 +5,6 @@ const DEFAULT_LOBBY_SECONDS = 180;
 
 export type JoinPlayerMode = 'trial' | 'paid_solo' | 'paid_multiplayer';
 
-/**
- * Session lane keys — each game mode gets its own independent session
- * so trial games never block paid entry and vice versa.
- */
-type SessionLane = 'trial' | 'paid_solo' | 'paid_multiplayer';
-
 export interface PlayerInfo {
   id: string;
   isPaidPlayer: boolean;
@@ -33,23 +27,18 @@ export interface MemoryGameSession {
   lobby_until_ms: number | null;
 }
 
-/** Per-mode session map — each lane is fully independent. */
-const sessions: Record<SessionLane, MemoryGameSession | null> = {
-  trial: null,
-  paid_solo: null,
-  paid_multiplayer: null,
-};
+let activeSession: MemoryGameSession | null = null;
 
-const createWaitingSession = (lane: SessionLane): MemoryGameSession => {
+const createWaitingSession = (): MemoryGameSession => {
   const now = Date.now();
   return {
-    session_id: `session_${lane}_${now}`,
+    session_id: `session_${now}`,
     status: 'waiting',
     player_count: 0,
     paid_player_count: 0,
     trial_player_count: 0,
     prize_pool: 0,
-    entry_fee: lane === 'trial' ? 0 : 1,
+    entry_fee: 1,
     start_time: now,
     created_at: now,
     players: [],
@@ -57,36 +46,26 @@ const createWaitingSession = (lane: SessionLane): MemoryGameSession => {
   };
 };
 
-function laneFor(mode: JoinPlayerMode): SessionLane {
-  return mode;
-}
-
-/**
- * Get the active session for a given mode lane.
- * Defaults to paid_multiplayer for backwards-compat with callers that don't specify.
- */
-export const getActiveSession = (mode?: JoinPlayerMode): MemoryGameSession => {
-  const lane = mode ? laneFor(mode) : 'paid_multiplayer';
-  if (!sessions[lane]) {
-    sessions[lane] = createWaitingSession(lane);
+export const getActiveSession = (): MemoryGameSession => {
+  if (!activeSession) {
+    activeSession = createWaitingSession();
   }
-  return sessions[lane]!;
+  return activeSession;
 };
 
-export const reconcileLobbyToActive = (mode?: JoinPlayerMode): MemoryGameSession => {
-  const lane = mode ? laneFor(mode) : 'paid_multiplayer';
-  const session = getActiveSession(mode);
+export const reconcileLobbyToActive = (): MemoryGameSession => {
+  const session = getActiveSession();
   if (session.status !== 'lobby' || !session.lobby_until_ms) {
     return session;
   }
   if (Date.now() >= session.lobby_until_ms) {
-    sessions[lane] = {
+    activeSession = {
       ...session,
       status: 'active',
       start_time: Date.now(),
       lobby_until_ms: null,
     };
-    return sessions[lane]!;
+    return activeSession!;
   }
   return session;
 };
@@ -102,62 +81,48 @@ export const joinActiveSession = (
   playerId?: string,
   opts?: JoinOptions
 ): MemoryGameSession => {
-  const inferredMode: JoinPlayerMode = opts?.playerMode ?? (isPaidPlayer ? 'paid_solo' : 'trial');
-  const lane = laneFor(inferredMode);
-
-  reconcileLobbyToActive(inferredMode);
-  let session = getActiveSession(inferredMode);
-
-  // Auto-reset expired sessions within the same lane
+  reconcileLobbyToActive();
+  let session = getActiveSession();
+  const inferredModeEarly: JoinPlayerMode = opts?.playerMode ?? (isPaidPlayer ? 'paid_solo' : 'trial');
   if (
     session.status === 'active' &&
     session.paid_player_count > 0 &&
-    inferredMode === 'paid_multiplayer'
+    inferredModeEarly === 'paid_multiplayer'
   ) {
     const elapsed = Math.floor((Date.now() - session.start_time) / 1000);
     const remaining = Math.max(0, FIVE_MINUTES_SECONDS - elapsed);
     if (remaining <= 0) {
       const sid = session.session_id;
-      sessions[lane] = { ...createWaitingSession(lane), session_id: sid };
-      session = sessions[lane]!;
+      activeSession = { ...createWaitingSession(), session_id: sid };
+      session = activeSession!;
     }
   }
-
-  // Auto-reset expired paid_solo sessions
-  if (
-    session.status === 'active' &&
-    session.paid_player_count > 0 &&
-    inferredMode === 'paid_solo'
-  ) {
-    const elapsed = Math.floor((Date.now() - session.start_time) / 1000);
-    const remaining = Math.max(0, FIVE_MINUTES_SECONDS - elapsed);
-    if (remaining <= 0) {
-      sessions[lane] = createWaitingSession(lane);
-      session = sessions[lane]!;
-    }
-  }
-
   const now = Date.now();
   const playerIdToUse = playerId || `player_${now}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const inferredMode: JoinPlayerMode = opts?.playerMode ?? (isPaidPlayer ? 'paid_solo' : 'trial');
 
   if (session.players.some((p) => p.id === playerIdToUse)) {
     return session;
   }
 
-  // Within-lane blocking (only same-mode conflicts)
+  if (session.status === 'lobby' && inferredMode === 'trial') {
+    throw new Error('Multiplayer lobby in progress — trial join paused');
+  }
+
+  if (session.status === 'lobby' && inferredMode === 'paid_solo') {
+    throw new Error('Multiplayer lobby in progress — try multiplayer or wait');
+  }
+
   if (inferredMode === 'paid_solo' && session.status === 'active' && session.paid_player_count > 0) {
-    const elapsed = Math.floor((now - session.start_time) / 1000);
-    const remaining = Math.max(0, FIVE_MINUTES_SECONDS - elapsed);
-    if (remaining > 0) {
-      throw new Error(`A solo paid game is in progress (${remaining}s remaining)`);
-    }
+    throw new Error('A paid game is already in progress');
   }
 
   if (inferredMode === 'paid_multiplayer' && session.status === 'active' && session.paid_player_count > 0) {
     const elapsed = Math.floor((now - session.start_time) / 1000);
     const remaining = Math.max(0, FIVE_MINUTES_SECONDS - elapsed);
     if (remaining > 0) {
-      throw new Error(`Multiplayer round in progress (${remaining}s remaining) — join the next lobby when it opens`);
+      throw new Error('Round in progress — join the next lobby when it opens');
     }
   }
 
@@ -201,15 +166,9 @@ export const joinActiveSession = (
       nextStartTime = now;
       nextLobbyUntil = null;
     }
-  } else if (inferredMode === 'trial') {
-    // Trial games start immediately
-    if (session.status === 'waiting') {
-      nextStatus = 'active';
-      nextStartTime = now;
-    }
   }
 
-  sessions[lane] = {
+  activeSession = {
     ...session,
     player_count: newPlayerCount,
     paid_player_count: newPaidPlayerCount,
@@ -221,45 +180,26 @@ export const joinActiveSession = (
     lobby_until_ms: nextLobbyUntil,
   };
 
-  return sessions[lane]!;
+  return activeSession!;
 };
 
-export const endLobbyNow = (mode?: JoinPlayerMode): MemoryGameSession => {
-  const m = mode ?? 'paid_multiplayer';
-  reconcileLobbyToActive(m);
-  const lane = laneFor(m);
-  const session = getActiveSession(m);
+export const endLobbyNow = (): MemoryGameSession => {
+  reconcileLobbyToActive();
+  const session = getActiveSession();
   if (session.status !== 'lobby') {
     return session;
   }
-  sessions[lane] = {
+  activeSession = {
     ...session,
     status: 'active',
     start_time: Date.now(),
     lobby_until_ms: null,
   };
-  return sessions[lane]!;
+  return activeSession!;
 };
 
-export const leaveActiveSession = (playerId: string, mode?: JoinPlayerMode): MemoryGameSession => {
-  // Search all lanes if mode not specified
-  let lane: SessionLane | null = null;
-  if (mode) {
-    lane = laneFor(mode);
-  } else {
-    for (const l of ['paid_multiplayer', 'paid_solo', 'trial'] as SessionLane[]) {
-      const s = sessions[l];
-      if (s && s.players.some((p) => p.id === playerId)) {
-        lane = l;
-        break;
-      }
-    }
-  }
-  if (!lane) {
-    return getActiveSession('paid_multiplayer');
-  }
-
-  const session = getActiveSession(lane as JoinPlayerMode);
+export const leaveActiveSession = (playerId: string): MemoryGameSession => {
+  const session = getActiveSession();
   const now = Date.now();
 
   const playerIndex = session.players.findIndex((p) => p.id === playerId);
@@ -274,14 +214,14 @@ export const leaveActiveSession = (playerId: string, mode?: JoinPlayerMode): Mem
   const newTrialPlayerCount = newPlayers.filter((p) => !p.isPaidPlayer).length;
   const newPlayerCount = newPlayers.length;
 
-  const wasLastPlayer = newPlayerCount === 0;
+  const wasLastTrialOrPaidPlayer = newPlayerCount === 0;
 
   let newStatus = session.status;
   let newStartTime = session.start_time;
   let newPrizePool = session.prize_pool;
   let newLobbyUntil = session.lobby_until_ms;
 
-  if (wasLastPlayer) {
+  if (wasLastTrialOrPaidPlayer) {
     newStatus = 'waiting';
     newStartTime = now;
     newPrizePool = 0;
@@ -293,7 +233,7 @@ export const leaveActiveSession = (playerId: string, mode?: JoinPlayerMode): Mem
     newLobbyUntil = null;
   }
 
-  sessions[lane] = {
+  activeSession = {
     ...session,
     player_count: newPlayerCount,
     paid_player_count: newPaidPlayerCount,
@@ -305,17 +245,17 @@ export const leaveActiveSession = (playerId: string, mode?: JoinPlayerMode): Mem
     lobby_until_ms: newLobbyUntil,
   };
 
-  return sessions[lane]!;
+  return activeSession!;
 };
 
-export const getTimeRemainingSeconds = (session?: MemoryGameSession, mode?: JoinPlayerMode): number => {
-  const s = session ?? reconcileLobbyToActive(mode);
+export const getTimeRemainingSeconds = (session?: MemoryGameSession): number => {
+  const s = session ?? reconcileLobbyToActive();
 
   if (s.status === 'lobby') {
     return 0;
   }
 
-  if (s.paid_player_count === 0 && s.trial_player_count === 0) {
+  if (s.paid_player_count === 0) {
     return FIVE_MINUTES_SECONDS;
   }
 
@@ -327,26 +267,24 @@ export const getTimeRemainingSeconds = (session?: MemoryGameSession, mode?: Join
   return Math.max(0, FIVE_MINUTES_SECONDS - elapsed);
 };
 
-export const getLobbyTimeRemainingSeconds = (session?: MemoryGameSession, mode?: JoinPlayerMode): number => {
-  const s = session ?? getActiveSession(mode);
+export const getLobbyTimeRemainingSeconds = (session?: MemoryGameSession): number => {
+  const s = session ?? getActiveSession();
   if (s.status !== 'lobby' || !s.lobby_until_ms) {
     return 0;
   }
   return Math.max(0, Math.ceil((s.lobby_until_ms - Date.now()) / 1000));
 };
 
-export const syncLobbyDurationSec = (durationSec: number, mode?: JoinPlayerMode): MemoryGameSession => {
-  const m = mode ?? 'paid_multiplayer';
-  reconcileLobbyToActive(m);
-  const lane = laneFor(m);
-  const session = getActiveSession(m);
+export const syncLobbyDurationSec = (durationSec: number): MemoryGameSession => {
+  reconcileLobbyToActive();
+  const session = getActiveSession();
   if (session.status !== 'lobby' || !session.lobby_until_ms) {
     return session;
   }
   const sec = Math.min(600, Math.max(30, Math.round(durationSec)));
-  sessions[lane] = {
+  activeSession = {
     ...session,
     lobby_until_ms: Date.now() + sec * 1000,
   };
-  return sessions[lane]!;
+  return activeSession!;
 };
