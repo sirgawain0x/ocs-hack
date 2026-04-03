@@ -36,6 +36,10 @@ interface GameEntryProps {
   playerModeChoice?: PlayerModeChoice;
   joinStartError?: string | null;
   onDismissJoinStartError?: () => void;
+  /** true when the session for this mode has an active round */
+  sessionBusy?: boolean;
+  /** seconds remaining in the active round (from server) */
+  sessionTimeRemaining?: number;
 }
 
 export default function GameEntry({
@@ -45,6 +49,8 @@ export default function GameEntry({
   playerModeChoice = 'trial',
   joinStartError,
   onDismissJoinStartError,
+  sessionBusy = false,
+  sessionTimeRemaining = 0,
 }: GameEntryProps) {
   const isPaidMode = playerModeChoice === 'paid_solo' || playerModeChoice === 'paid_multiplayer';
   console.log('GameEntry received playerModeChoice:', playerModeChoice);
@@ -64,6 +70,22 @@ export default function GameEntry({
   const [isFundingUrlGenerating, setIsFundingUrlGenerating] = useState(false);
   const paidGameCalls = useMemo(() => createBaseAccountPaidGameCalls(), []);
   const paidTxRef = useRef<BaseAccountTransactionHandle>(null);
+
+  // Local countdown timer that ticks every second from the server-provided value
+  const [localCountdown, setLocalCountdown] = useState(sessionTimeRemaining);
+  useEffect(() => {
+    setLocalCountdown(sessionTimeRemaining);
+  }, [sessionTimeRemaining]);
+  useEffect(() => {
+    if (localCountdown <= 0) return;
+    const t = window.setInterval(() => {
+      setLocalCountdown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [localCountdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  const countdownMins = Math.floor(localCountdown / 60);
+  const countdownSecs = localCountdown % 60;
+  const countdownText = `${countdownMins}:${countdownSecs.toString().padStart(2, '0')}`;
 
   useEffect(() => {
     if (!isProcessingPayment) return;
@@ -610,6 +632,22 @@ export default function GameEntry({
                     Entry is <span className="text-white font-medium">1 USDC</span> per session. You sign two steps: USDC approval, then join — the app waits for the first to confirm before sending the second (avoids wallet nonce errors). Sponsored gas depends on your CDP Paymaster rules.
                   </div>
                   
+                  {/* Session-busy info banner — paid players can still enter (auto-reset) */}
+                  {sessionBusy && localCountdown > 0 && !isProcessingPayment && (
+                    <div
+                      className="mb-3 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-3 text-center"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <p className="text-sm text-amber-200 font-medium">
+                        Round in progress &mdash; {countdownText} remaining
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        Your entry will start a new session automatically
+                      </p>
+                    </div>
+                  )}
+
                   {isProcessingPayment ? (
                     <div className="space-y-4">
                       <div

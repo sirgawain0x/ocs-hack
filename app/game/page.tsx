@@ -26,7 +26,7 @@ import { useBaseAccount } from '@/hooks/useBaseAccount';
 
 export default function Game() {
   const router = useRouter();
-  const { leaveGame, joinGame } = useGameSession();
+  const { leaveGame, joinGame, canJoin, timeRemaining: sessionTimeLeft } = useGameSession();
   const { shareGameAchievement } = useSocialShare();
   const [currentQuestion, setCurrentQuestion] = useState<TriviaQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -397,7 +397,12 @@ export default function Game() {
     return (
       <div className="bg-[#000000] min-h-screen w-full flex items-center justify-center px-4">
         <div className="w-full max-w-[390px] md:max-w-[428px]">
-          <GameEntry onGameStart={handleGameStart} playerModeChoice="paid_solo" />
+          <GameEntry
+            onGameStart={handleGameStart}
+            playerModeChoice="paid_solo"
+            sessionBusy={!canJoin}
+            sessionTimeRemaining={sessionTimeLeft}
+          />
         </div>
       </div>
     );
