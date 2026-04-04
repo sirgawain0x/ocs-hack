@@ -895,10 +895,10 @@ pub fn join_multiplayer_pool(
         ctx.db.pool_players().player_id().delete(&player_id);
     }
 
-    // If the session is active with paid players, force-reset it.
+    // If the session is active, force-reset it.
     // Paid players are never rejected — the blockchain payment is
     // irreversible, so if they paid, they play.
-    if session.status == SessionStatus::Active && session.paid_player_count > 0 {
+    if session.status == SessionStatus::Active {
         delete_pool_players_for_session(ctx, &session.session_id);
         session.player_count = 0;
         session.paid_player_count = 0;
