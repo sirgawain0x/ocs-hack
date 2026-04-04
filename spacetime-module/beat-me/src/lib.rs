@@ -848,7 +848,6 @@ pub fn join_multiplayer_pool(
 ) -> Result<(), String> {
     reconcile_lobbies_to_active(ctx);
     let now = ctx.timestamp;
-    let game_duration = TimeDuration::from_duration(Duration::from_secs(300));
     let lobby_sec = lobby_duration_sec.clamp(1, 600);
 
     let mut session_opt = ctx
