@@ -99,6 +99,13 @@ function HomePage() {
     }
   }, [trialStatus.gamesRemaining, trialStatus.isTrialActive, playerModeChoice]);
 
+  // Refetch session when time remaining hits 0 so canJoin updates promptly
+  useEffect(() => {
+    if (timeRemaining === 0 && !canJoin) {
+      refetch();
+    }
+  }, [timeRemaining, canJoin, refetch]);
+
   useEffect(() => {
     setInviteUrl(`${window.location.origin}/?mode=multiplayer`);
   }, []);
@@ -654,6 +661,8 @@ function HomePage() {
             playerModeChoice={playerModeChoice}
             joinStartError={joinGameStartError}
             onDismissJoinStartError={() => setJoinGameStartError(null)}
+            sessionBusy={!canJoin}
+            sessionTimeRemaining={timeRemaining}
           />
           {/* Debug info */}
           {/* <div className="text-xs text-gray-500 text-center mt-2">
