@@ -307,8 +307,8 @@ export default function GameEntry({
       // Start paid game with smart contract interaction
       await handlePaidGameEntry();
     } else {
-      // Trial exhausted or other case - show payment flow
-      setShowPayment(true);
+      // Trial exhausted but not in paid mode — auto-redirect expected from page.tsx
+      console.warn('Unexpected: trial exhausted but not in paid mode. Auto-redirect expected.');
       setIsStartingGame(false);
     }
   };
@@ -733,24 +733,9 @@ export default function GameEntry({
               )}
             </>
           ) : (
-            <>
-              <div className="text-sm text-gray-300 text-center">
-                Ready to compete for rewards?
-              </div>
-              <div className="flex items-center justify-center gap-2 text-sm mb-4">
-                <Coins className="h-4 w-4 text-yellow-400" />
-                <span className="text-gray-300">Entry Fee: 1 USDC</span>
-                <GaslessBadge isGasless={true} />
-              </div>
-              <Button
-                onClick={handleStartGame}
-                className="w-full !bg-gradient-to-r !from-yellow-500 !to-orange-500 hover:!from-yellow-400 hover:!to-orange-400 !text-white border-0 shadow-lg cursor-pointer"
-                style={{ background: 'linear-gradient(to right, #eab308, #f97316)' }}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Start Normal Game
-              </Button>
-            </>
+            <div className="text-center text-sm text-gray-400 py-4">
+              <p>Select a play mode above to get started.</p>
+            </div>
           )}
         </CardContent>
       </Card>

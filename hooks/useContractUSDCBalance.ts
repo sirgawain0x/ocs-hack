@@ -14,6 +14,8 @@ export interface ContractUSDCBalanceState {
   symbol: string;
   decimals: number;
   entryFee: number;
+  sessionPrizePool: number;
+  sessionPrizePoolWei: bigint;
 }
 
 // Helper function to decode ABI-encoded string
@@ -52,6 +54,8 @@ export function useContractUSDCBalance() {
     symbol: 'USDC',
     decimals: 6,
     entryFee: 0,
+    sessionPrizePool: 0,
+    sessionPrizePoolWei: BigInt(0),
   });
 
   const hasFetchedOnce = useRef(false);
@@ -84,11 +88,21 @@ export function useContractUSDCBalance() {
         data: '0x072ea61c',
       }, 'latest']);
 
+      // Read the current session prize pool (currentSessionPrizePool() selector: 0x6bc089d5)
+      // This reflects the actual prize pool for the active session, unlike balanceOf which
+      // includes pending withdrawals and platform fees
+      const sessionPrizePoolRaw = await rpcCall('eth_call', [{
+        to: TRIVIA_CONTRACT_ADDRESS,
+        data: '0x6bc089d5',
+      }, 'latest']);
+
       const balanceWeiBigInt = BigInt(balanceWei);
       const decimalsNum = parseInt(decimals, 16);
       const symbolStr = decodeString(symbol);
       const balance = Number(balanceWeiBigInt) / (10 ** decimalsNum);
       const entryFee = Number(BigInt(entryFeeRaw)) / (10 ** decimalsNum);
+      const sessionPrizePoolWei = BigInt(sessionPrizePoolRaw);
+      const sessionPrizePool = Number(sessionPrizePoolWei) / (10 ** decimalsNum);
 
       hasFetchedOnce.current = true;
 
@@ -100,6 +114,8 @@ export function useContractUSDCBalance() {
         isLoading: false,
         error: null,
         entryFee,
+        sessionPrizePool,
+        sessionPrizePoolWei,
       });
     } catch (error) {
       console.error('Error fetching contract data:', error);
