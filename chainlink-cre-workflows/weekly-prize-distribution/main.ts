@@ -206,20 +206,21 @@ function readSessionInfo(
     data: bytesToHex(sessionIntervalResult.data),
   }) as bigint
 
-  // Read prize pool from USDC balance
-  const getContractUsdcBalanceCall = encodeFunctionData({
-    abi: [{ inputs: [], name: "getContractUsdcBalance", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
-    functionName: "getContractUsdcBalance",
+  // Read prize pool from the session-specific state variable (not total USDC balance,
+  // which includes pending withdrawals and platform fees)
+  const currentSessionPrizePoolCall = encodeFunctionData({
+    abi: [{ inputs: [], name: "currentSessionPrizePool", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
+    functionName: "currentSessionPrizePool",
   })
   const prizePoolResult = evmClient
     .callContract(runtime, {
-      call: encodeCallMsg({ from: zeroAddress, to: contractAddress, data: getContractUsdcBalanceCall }),
+      call: encodeCallMsg({ from: zeroAddress, to: contractAddress, data: currentSessionPrizePoolCall }),
       blockNumber: LAST_FINALIZED_BLOCK_NUMBER,
     })
     .result()
   const prizePool = decodeFunctionResult({
-    abi: [{ inputs: [], name: "getContractUsdcBalance", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
-    functionName: "getContractUsdcBalance",
+    abi: [{ inputs: [], name: "currentSessionPrizePool", outputs: [{ type: "uint256" }], stateMutability: "view", type: "function" }],
+    functionName: "currentSessionPrizePool",
     data: bytesToHex(prizePoolResult.data),
   }) as bigint
 

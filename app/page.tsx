@@ -89,6 +89,7 @@ function HomePage() {
     error: contractBalanceError,
     refreshBalance: refreshContractUsdcBalance,
     entryFee: contractEntryFee,
+    sessionPrizePool,
   } = useContractUSDCBalance();
 
   // Automatically switch to paid solo if trial is exhausted
@@ -576,27 +577,25 @@ function HomePage() {
               </div>
 
               <div
-                className="grid grid-cols-1 gap-2 sm:grid-cols-3 mb-6"
+                className="grid grid-cols-1 gap-2 sm:grid-cols-2 mb-6"
                 role="group"
                 aria-label="Play mode"
               >
-                <button
-                  type="button"
-                  disabled={trialStatus.gamesRemaining === 0}
-                  onClick={() => setPlayerModeChoice('trial')}
-                  className={cn(
-                    'rounded-lg border px-3 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
-                    playerModeChoice === 'trial'
-                      ? 'border-green-500/60 bg-green-500/10 text-white'
-                      : 'border-gray-700/50 bg-gray-800/30 text-gray-400 hover:border-gray-600',
-                    trialStatus.gamesRemaining === 0 && 'opacity-50 cursor-not-allowed'
-                  )}
-                >
-                  <span className="font-medium text-white">Trial</span>
-                  <span className="mt-1 block text-xs text-gray-400">
-                    {trialStatus.gamesRemaining === 0 ? 'Used' : '1 free play'}
-                  </span>
-                </button>
+                {trialStatus.gamesRemaining > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPlayerModeChoice('trial')}
+                    className={cn(
+                      'rounded-lg border px-3 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500',
+                      playerModeChoice === 'trial'
+                        ? 'border-green-500/60 bg-green-500/10 text-white'
+                        : 'border-gray-700/50 bg-gray-800/30 text-gray-400 hover:border-gray-600'
+                    )}
+                  >
+                    <span className="font-medium text-white">Trial</span>
+                    <span className="mt-1 block text-xs text-gray-400">1 free play</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setPlayerModeChoice('paid_solo')}
@@ -624,14 +623,6 @@ function HomePage() {
                   <span className="mt-1 block text-xs text-gray-400">Paid — shared pool</span>
                 </button>
               </div>
-
-              {trialStatus.gamesRemaining === 0 && (
-                <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                  <p className="text-sm text-blue-300">
-                    Your free trial is used. Choose Solo or Multiplayer to play with USDC.
-                  </p>
-                </div>
-              )}
 
               <div className="text-center">
                 {playerModeChoice === 'trial' ? (
@@ -1119,7 +1110,7 @@ function HomePage() {
                       ) : contractBalanceLoading ? (
                         '...'
                       ) : (
-                        `${contractUSDCBalance.toFixed(3)} USDC`
+                        `${sessionPrizePool.toFixed(3)} USDC`
                       )}
                     </p>
                   </div>
