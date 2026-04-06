@@ -88,12 +88,12 @@ export function useContractUSDCBalance() {
         data: '0x072ea61c',
       }, 'latest']);
 
-      // Read the current session prize pool (currentSessionPrizePool() selector: 0x6bc089d5)
+      // Read the current session prize pool (currentSessionPrizePool() selector: 0x1a7dd42a)
       // This reflects the actual prize pool for the active session, unlike balanceOf which
       // includes pending withdrawals and platform fees
       const sessionPrizePoolRaw = await rpcCall('eth_call', [{
         to: TRIVIA_CONTRACT_ADDRESS,
-        data: '0x6bc089d5',
+        data: '0x1a7dd42a',
       }, 'latest']);
 
       const balanceWeiBigInt = BigInt(balanceWei);
