@@ -577,10 +577,7 @@ function HomePage() {
               </div>
 
               <div
-                className={cn(
-                  'grid grid-cols-1 gap-2 mb-6',
-                  trialStatus.gamesRemaining > 0 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
-                )}
+                className="grid grid-cols-1 gap-2 sm:grid-cols-2 mb-6"
                 role="group"
                 aria-label="Play mode"
               >

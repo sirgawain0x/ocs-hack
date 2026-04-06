@@ -307,8 +307,7 @@ export default function GameEntry({
       // Start paid game with smart contract interaction
       await handlePaidGameEntry();
     } else {
-      // Trial exhausted but not in paid mode — auto-redirect expected from page.tsx
-      console.warn('Unexpected: trial exhausted but not in paid mode. Auto-redirect expected.');
+      // Trial exhausted but not in paid mode — parent auto-redirects to paid_solo
       setIsStartingGame(false);
     }
   };

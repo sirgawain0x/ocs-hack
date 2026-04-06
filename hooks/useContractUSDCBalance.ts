@@ -101,7 +101,7 @@ export function useContractUSDCBalance() {
       const symbolStr = decodeString(symbol);
       const balance = Number(balanceWeiBigInt) / (10 ** decimalsNum);
       const entryFee = Number(BigInt(entryFeeRaw)) / (10 ** decimalsNum);
-      const sessionPrizePoolWei = BigInt(sessionPrizePoolRaw);
+      const sessionPrizePoolWei = (sessionPrizePoolRaw && sessionPrizePoolRaw !== '0x') ? BigInt(sessionPrizePoolRaw) : BigInt(0);
       const sessionPrizePool = Number(sessionPrizePoolWei) / (10 ** decimalsNum);
 
       hasFetchedOnce.current = true;
