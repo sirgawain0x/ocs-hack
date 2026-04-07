@@ -96,16 +96,15 @@ export interface PrizePool {
   totalAmount: number;
   entryFee: number;
   participants: number;
-  trialParticipants: number; // New field to track trial participants
+  trialParticipants: number;
   distribution: {
     first: number;
     second: number;
     third: number;
-    participation: number;
+    participation?: number; // Not used in deployed TriviaBattle contract (60/30/10 split)
   };
   contractAddress: string;
-  isEqualOpportunity: boolean; // New field to indicate equal opportunity for trial players
-  // No maximum limit - prize pool scales with number of participants
+  isEqualOpportunity: boolean;
 }
 
 export interface PlayerStats {

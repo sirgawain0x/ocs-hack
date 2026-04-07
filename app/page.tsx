@@ -90,6 +90,10 @@ function HomePage() {
     refreshBalance: refreshContractUsdcBalance,
     entryFee: contractEntryFee,
     sessionPrizePool,
+    playerCount: onChainPlayerCount,
+    isSessionActive: onChainSessionActive,
+    lastSessionTime: onChainLastSessionTime,
+    sessionInterval: onChainSessionInterval,
   } = useContractUSDCBalance();
 
   // Automatically switch to paid solo if trial is exhausted
@@ -1115,12 +1119,20 @@ function HomePage() {
                     </p>
                   </div>
                   <p className="font-['Audiowide:Regular',_sans-serif] text-[#000000] text-[9px] leading-snug max-w-full">
-                    On-chain prize pot. Grows by {contractEntryFee > 0 ? contractEntryFee : ENTRY_FEE_USDC} USDC per paid entry. Updates every few seconds.
+                    Current session prize pool. Grows by {contractEntryFee > 0 ? contractEntryFee : ENTRY_FEE_USDC} USDC per paid entry.
                   </p>
+                  {/* Prize distribution breakdown */}
+                  {!contractBalanceLoading && sessionPrizePool > 0 && (
+                    <div className="flex gap-3 w-full font-['Audiowide:Regular',_sans-serif] text-[#000000] text-[8px]">
+                      <span>1st: {(sessionPrizePool * 0.9 * 0.6).toFixed(2)}</span>
+                      <span>2nd: {(sessionPrizePool * 0.9 * 0.3).toFixed(2)}</span>
+                      <span>3rd: {(sessionPrizePool * 0.9 * 0.1).toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="content-stretch flex gap-4 items-center justify-start relative shrink-0 w-full" data-node-id="3:161">
                     <div className="font-['Audiowide:Regular',_sans-serif] leading-[0] not-italic relative shrink-0 text-[#000000] text-[8px] text-nowrap" data-node-id="3:159">
                       <p className="leading-[normal] whitespace-pre">
-                        {getPlayerCountDisplay()}
+                        {onChainPlayerCount > 0 ? `${onChainPlayerCount} on-chain players` : getPlayerCountDisplay()}
                       </p>
                     </div>
                   </div>

@@ -16,6 +16,10 @@ export interface ContractUSDCBalanceState {
   entryFee: number;
   sessionPrizePool: number;
   sessionPrizePoolWei: bigint;
+  lastSessionTime: number;
+  sessionInterval: number;
+  playerCount: number;
+  isSessionActive: boolean;
 }
 
 // Helper function to decode ABI-encoded string
@@ -56,6 +60,10 @@ export function useContractUSDCBalance() {
     entryFee: 0,
     sessionPrizePool: 0,
     sessionPrizePoolWei: BigInt(0),
+    lastSessionTime: 0,
+    sessionInterval: 0,
+    playerCount: 0,
+    isSessionActive: false,
   });
 
   const hasFetchedOnce = useRef(false);
@@ -67,34 +75,20 @@ export function useContractUSDCBalance() {
     }
 
     try {
-      const balanceWei = await rpcCall('eth_call', [{
-        to: USDC_CONTRACT_ADDRESS,
-        data: `0x70a08231${TRIVIA_CONTRACT_ADDRESS.slice(2).padStart(64, '0')}`,
-      }, 'latest']);
-
-      const decimals = await rpcCall('eth_call', [{
-        to: USDC_CONTRACT_ADDRESS,
-        data: '0x313ce567',
-      }, 'latest']);
-
-      const symbol = await rpcCall('eth_call', [{
-        to: USDC_CONTRACT_ADDRESS,
-        data: '0x95d89b41',
-      }, 'latest']);
-
-      // Read the on-chain entry fee from the Trivia contract (entryFee() selector: 0x072ea61c)
-      const entryFeeRaw = await rpcCall('eth_call', [{
-        to: TRIVIA_CONTRACT_ADDRESS,
-        data: '0x072ea61c',
-      }, 'latest']);
-
-      // Read the current session prize pool (currentSessionPrizePool() selector: 0x1a7dd42a)
-      // This reflects the actual prize pool for the active session, unlike balanceOf which
-      // includes pending withdrawals and platform fees
-      const sessionPrizePoolRaw = await rpcCall('eth_call', [{
-        to: TRIVIA_CONTRACT_ADDRESS,
-        data: '0x1a7dd42a',
-      }, 'latest']);
+      // Batch all RPC calls in parallel for better latency
+      const [balanceWei, decimals, symbol, entryFeeRaw, sessionPrizePoolRaw, lastSessionTimeRaw, sessionIntervalRaw, currentPlayersRaw, isSessionActiveRaw] = await Promise.all([
+        // USDC contract reads
+        rpcCall('eth_call', [{ to: USDC_CONTRACT_ADDRESS, data: `0x70a08231${TRIVIA_CONTRACT_ADDRESS.slice(2).padStart(64, '0')}` }, 'latest']),
+        rpcCall('eth_call', [{ to: USDC_CONTRACT_ADDRESS, data: '0x313ce567' }, 'latest']),
+        rpcCall('eth_call', [{ to: USDC_CONTRACT_ADDRESS, data: '0x95d89b41' }, 'latest']),
+        // Trivia contract reads
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0x072ea61c' }, 'latest']), // entryFee()
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0x1a7dd42a' }, 'latest']), // currentSessionPrizePool()
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0xcf0902af' }, 'latest']), // lastSessionTime()
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0x36dc7bc0' }, 'latest']), // sessionInterval()
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0x02cac05c' }, 'latest']), // getCurrentPlayers()
+        rpcCall('eth_call', [{ to: TRIVIA_CONTRACT_ADDRESS, data: '0x031a65f4' }, 'latest']), // isSessionActive()
+      ]);
 
       const balanceWeiBigInt = BigInt(balanceWei);
       const decimalsNum = parseInt(decimals, 16);
@@ -103,6 +97,16 @@ export function useContractUSDCBalance() {
       const entryFee = Number(BigInt(entryFeeRaw)) / (10 ** decimalsNum);
       const sessionPrizePoolWei = (sessionPrizePoolRaw && sessionPrizePoolRaw !== '0x') ? BigInt(sessionPrizePoolRaw) : BigInt(0);
       const sessionPrizePool = Number(sessionPrizePoolWei) / (10 ** decimalsNum);
+      const lastSessionTime = Number(BigInt(lastSessionTimeRaw));
+      const sessionInterval = Number(BigInt(sessionIntervalRaw));
+      const isSessionActive = BigInt(isSessionActiveRaw) !== BigInt(0);
+
+      // getCurrentPlayers() returns a dynamic array — parse length from ABI encoding
+      // Format: offset (32 bytes) + length (32 bytes) + elements
+      let playerCount = 0;
+      if (currentPlayersRaw && currentPlayersRaw.length >= 130) {
+        playerCount = parseInt(currentPlayersRaw.slice(66, 130), 16);
+      }
 
       hasFetchedOnce.current = true;
 
@@ -116,6 +120,10 @@ export function useContractUSDCBalance() {
         entryFee,
         sessionPrizePool,
         sessionPrizePoolWei,
+        lastSessionTime,
+        sessionInterval,
+        playerCount,
+        isSessionActive,
       });
     } catch (error) {
       console.error('Error fetching contract data:', error);
