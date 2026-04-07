@@ -622,6 +622,37 @@ export default function GameEntry({
                     <div className="text-xs text-gray-400 mt-1">
                       {hasEnoughForEntry ? 'Sufficient funds for entry' : 'Need 1 USDC to play'}
                     </div>
+
+                    {/* CDP Onramp - Buy USDC button when balance is insufficient */}
+                    {!hasEnoughForEntry && !balanceLoading && (
+                      <div className="mt-3 pt-3 border-t border-gray-700/50">
+                        <Button
+                          onClick={() => {
+                            if (fundingUrl) {
+                              window.open(fundingUrl, '_blank', 'noopener,noreferrer');
+                            }
+                          }}
+                          disabled={!fundingUrl || isFundingUrlGenerating}
+                          className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          size="sm"
+                        >
+                          {isFundingUrlGenerating ? (
+                            <>
+                              <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                              Initializing Onramp...
+                            </>
+                          ) : (
+                            <>
+                              <Coins className="h-3 w-3 mr-2" />
+                              Buy USDC with Card
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-[10px] text-gray-500 text-center mt-1.5">
+                          Powered by Coinbase Onramp &middot; Card or Apple Pay
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="text-sm text-gray-300 text-center mb-4">
