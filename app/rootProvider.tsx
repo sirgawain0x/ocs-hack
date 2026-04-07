@@ -2,9 +2,10 @@
 import { ReactNode, useEffect, useState } from "react";
 import { base } from "viem/chains";
 import { createBaseAccountSDK } from "@base-org/account";
-import { OnchainKitProvider } from "@coinbase/onchainkit";
+import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SpacetimeProvider } from "@/components/providers/SpacetimeProvider";
+import { wagmiConfig } from "@/lib/wagmi";
 
 // Create query client
 const queryClient = new QueryClient();
@@ -56,14 +57,14 @@ function BaseAccountProviderWrapper({ children }: { children: ReactNode }) {
 
 export function RootProvider({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <OnchainKitProvider apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY} chain={base}>
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
         <SpacetimeProvider>
           <BaseAccountProviderWrapper>
             {children}
           </BaseAccountProviderWrapper>
         </SpacetimeProvider>
-      </OnchainKitProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
