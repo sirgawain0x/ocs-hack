@@ -1,7 +1,21 @@
 "use client";
+import { useState, useEffect } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 
 export function MiniAppActions() {
+  const [isInFarcaster, setIsInFarcaster] = useState(false);
+
+  useEffect(() => {
+    setIsInFarcaster(
+      typeof window !== 'undefined' &&
+      !!window.sdk?.actions
+    );
+  }, []);
+
+  if (!isInFarcaster) {
+    return null;
+  }
+
   const handleAddFrame = async () => {
     try {
       await sdk.actions.addFrame();

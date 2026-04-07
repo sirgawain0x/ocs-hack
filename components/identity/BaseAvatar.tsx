@@ -1,14 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createPublicClient, http } from 'viem';
+import { useEnsName, useEnsAvatar } from 'wagmi';
 import { normalize } from 'viem/ens';
-import { base } from 'viem/chains';
-
-const client = createPublicClient({
-  chain: base,
-  transport: http(),
-});
 
 interface BaseAvatarProps {
   address?: `0x${string}`;
@@ -17,25 +10,15 @@ interface BaseAvatarProps {
 }
 
 export function BaseAvatar({ address, className = '', defaultComponent }: BaseAvatarProps) {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { data: ensName } = useEnsName({
+    address,
+    query: { enabled: !!address },
+  });
 
-  useEffect(() => {
-    if (!address) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const name = await client.getEnsName({ address });
-        if (name && !cancelled) {
-          const avatar = await client.getEnsAvatar({ name: normalize(name) });
-          if (!cancelled) setAvatarUrl(avatar);
-        }
-      } catch {
-        // Basename/ENS resolution not available — fall through to default
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [address]);
+  const { data: avatarUrl } = useEnsAvatar({
+    name: ensName ? normalize(ensName) : undefined,
+    query: { enabled: !!ensName },
+  });
 
   if (avatarUrl) {
     return (

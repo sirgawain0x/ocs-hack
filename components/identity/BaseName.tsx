@@ -1,13 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
-
-const client = createPublicClient({
-  chain: base,
-  transport: http(),
-});
+import { useEnsName } from 'wagmi';
 
 interface BaseNameProps {
   address: `0x${string}`;
@@ -15,20 +8,7 @@ interface BaseNameProps {
 }
 
 export function BaseName({ address, className = '' }: BaseNameProps) {
-  const [name, setName] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const ensName = await client.getEnsName({ address });
-        if (!cancelled && ensName) setName(ensName);
-      } catch {
-        // Basename/ENS resolution not available
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [address]);
+  const { data: name } = useEnsName({ address });
 
   return (
     <span className={className}>
