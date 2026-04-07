@@ -511,8 +511,8 @@ function HomePage() {
     );
   }
 
-  // Show trial completion screen if user has used all free games
-  if (trialStatus.requiresWallet) {
+  // Show trial completion screen if user has used all free games (but not if a game just finished)
+  if (trialStatus.requiresWallet && !gameCompleted) {
     return (
       <div className="bg-[#000000] min-h-screen w-full flex items-center justify-center px-4">
         <div className="w-full max-w-[390px] md:max-w-[428px]">
