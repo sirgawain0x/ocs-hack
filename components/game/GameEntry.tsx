@@ -95,6 +95,11 @@ export default function GameEntry({
     return () => window.clearTimeout(t);
   }, [isProcessingPayment, paymentFlowId]);
 
+  // Reset funding URL when wallet address changes to prevent funding the wrong account
+  useEffect(() => {
+    setFundingUrl(null);
+  }, [address]);
+
   // Auto-generate funding URL with CDP session token when address is available
   useEffect(() => {
     const generateInitialFundingUrl = async () => {
@@ -633,7 +638,7 @@ export default function GameEntry({
                             }
                           }}
                           disabled={!fundingUrl || isFundingUrlGenerating}
-                          className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full !bg-gradient-to-r !from-blue-500 !to-indigo-500 hover:!from-blue-400 hover:!to-indigo-400 text-white text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           size="sm"
                         >
                           {isFundingUrlGenerating ? (
@@ -648,7 +653,7 @@ export default function GameEntry({
                             </>
                           )}
                         </Button>
-                        <p className="text-[10px] text-gray-500 text-center mt-1.5">
+                        <p className="text-[10px] text-gray-400 text-center mt-1.5">
                           Powered by Coinbase Onramp &middot; Card or Apple Pay
                         </p>
                       </div>
