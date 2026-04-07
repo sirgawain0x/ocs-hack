@@ -511,8 +511,8 @@ function HomePage() {
     );
   }
 
-  // Show trial completion screen if user has used all free games
-  if (trialStatus.requiresWallet) {
+  // Show trial completion screen if user has used all free games (but not if a game just finished)
+  if (trialStatus.requiresWallet && !gameCompleted) {
     return (
       <div className="bg-[#000000] min-h-screen w-full flex items-center justify-center px-4">
         <div className="w-full max-w-[390px] md:max-w-[428px]">
@@ -722,28 +722,14 @@ function HomePage() {
                 </div>
               )}
 
-              {/* Trial Exhausted Notice */}
-              {trialStatus.requiresWallet && (
+              {/* Trial Exhausted Notice - directs user to home for paid modes */}
+              {trialStatus.requiresWallet && completedAsTrial && (
                 <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
                   <div className="text-purple-300 text-sm">
-                    <p className="font-medium mb-2">🎯 Trial Games Complete!</p>
-                    <p className="text-purple-200/80 mb-3">
-                      {`You've used all your free games. Connect your wallet to continue playing and earn rewards!`}
+                    <p className="font-medium mb-2">Want to keep playing?</p>
+                    <p className="text-purple-200/80">
+                      Head back to the home screen to connect your wallet and play for real prizes!
                     </p>
-                    <div className="flex justify-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <BaseAccountButton
-                          className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !text-white !px-6 !py-2 !rounded-lg !text-sm !font-semibold"
-                          onConnect={() => setShowPayment(true)}
-                        />
-                        <button
-                          onClick={() => setShowPayment(true)}
-                          className="w-full text-left px-4 py-2 text-white hover:text-white hover:bg-white/10 transition-colors rounded-md"
-                        >
-                          💳 Buy USDC
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -776,7 +762,7 @@ function HomePage() {
               onClick={handleBackToHome}
               className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg text-lg"
             >
-              Play Again
+              Back to Home
             </button>
           </div>
         </div>

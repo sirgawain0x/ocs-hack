@@ -305,7 +305,7 @@ export default function SpacetimeTriviaGame({ className = '', onWalletConnect, o
   };
 
   // Show trial completion screen if user has used all free games
-  if (trialStatus.requiresWallet) {
+  if (trialStatus.requiresWallet && gameState.gameStatus === 'waiting') {
     return (
       <div className={`max-w-4xl mx-auto ${className}`}>
         <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
