@@ -284,6 +284,12 @@ export default function GameEntry({
 
     setIsStartingGame(true);
 
+    if (playerModeChoice === 'trial' && !trialStatus.isTrialActive) {
+      setError('Your free trial has been used. Please select a paid mode.');
+      setIsStartingGame(false);
+      return;
+    }
+
     if (playerModeChoice === 'trial' && trialStatus.isTrialActive) {
       // Trial player - start game immediately
       console.log('Starting trial game');

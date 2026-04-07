@@ -33,8 +33,13 @@ export async function configureAutoSpend(): Promise<{
 
   try {
     const provider = sdk.getProvider();
-    const accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
-    
+    let accounts: string[] = [];
+    try {
+      accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
+    } catch {
+      return { success: false, error: 'No Base Account connected' };
+    }
+
     if (accounts.length === 0) {
       return { success: false, error: 'No Base Account connected' };
     }
@@ -104,8 +109,13 @@ export async function checkAutoSpendStatus(): Promise<{
 
   try {
     const provider = sdk.getProvider();
-    const accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
-    
+    let accounts: string[] = [];
+    try {
+      accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
+    } catch {
+      return { isConfigured: false, error: 'No Base Account connected' };
+    }
+
     if (accounts.length === 0) {
       return { isConfigured: false, error: 'No Base Account connected' };
     }
@@ -164,8 +174,13 @@ export async function revokeAutoSpend(): Promise<{
 
   try {
     const provider = sdk.getProvider();
-    const accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
-    
+    let accounts: string[] = [];
+    try {
+      accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
+    } catch {
+      return { success: false, error: 'No Base Account connected' };
+    }
+
     if (accounts.length === 0) {
       return { success: false, error: 'No Base Account connected' };
     }
@@ -229,8 +244,13 @@ export async function getAutoSpendConfig(): Promise<{
 
   try {
     const provider = sdk.getProvider();
-    const accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
-    
+    let accounts: string[] = [];
+    try {
+      accounts = (await provider.request({ method: 'eth_accounts', params: [] })) as string[];
+    } catch {
+      return { error: 'No Base Account connected' };
+    }
+
     if (accounts.length === 0) {
       return { error: 'No Base Account connected' };
     }
