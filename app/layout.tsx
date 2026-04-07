@@ -56,6 +56,7 @@ export const metadata: Metadata = {
     images: ["/assets/BEAT_ME_thumbnail.png"],
   },
   other: {
+    "base:app_id": process.env.NEXT_PUBLIC_BASE_APP_ID ?? "",
     "fc:frame": JSON.stringify({
       version: "next",
       imageUrl: "https://beatme.creativeplatform.xyz/assets/BEAT_ME_thumbnail.png",
