@@ -329,8 +329,10 @@ function verifyScoresExist(
     return false
   }
 
-  // Check scores for up to the first 10 players (sufficient to verify scores were submitted)
-  const playersToCheck = players.slice(0, Math.min(players.length, 10))
+  // Check all players for scores. The contract caps at MAX_PLAYERS (100),
+  // and submitScores() sets all scores atomically, so if any player has a
+  // score they all should. We check all to be safe.
+  const playersToCheck = players
   let hasAnyScore = false
 
   for (const player of playersToCheck) {

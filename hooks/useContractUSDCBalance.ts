@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { decodeFunctionResult } from 'viem';
 import { TRIVIA_CONTRACT_ADDRESS, USDC_CONTRACT_ADDRESS } from '@/lib/blockchain/contracts';
 
 // Public Base RPC endpoint — no wallet connection required
@@ -101,11 +102,15 @@ export function useContractUSDCBalance() {
       const sessionInterval = Number(BigInt(sessionIntervalRaw));
       const isSessionActive = BigInt(isSessionActiveRaw) !== BigInt(0);
 
-      // getCurrentPlayers() returns a dynamic array — parse length from ABI encoding
-      // Format: offset (32 bytes) + length (32 bytes) + elements
+      // Decode getCurrentPlayers() using viem for proper ABI handling
       let playerCount = 0;
-      if (currentPlayersRaw && currentPlayersRaw.length >= 130) {
-        playerCount = parseInt(currentPlayersRaw.slice(66, 130), 16);
+      if (currentPlayersRaw && currentPlayersRaw !== '0x') {
+        const players = decodeFunctionResult({
+          abi: [{ inputs: [], name: 'getCurrentPlayers', outputs: [{ type: 'address[]' }], stateMutability: 'view', type: 'function' }],
+          functionName: 'getCurrentPlayers',
+          data: currentPlayersRaw as `0x${string}`,
+        }) as `0x${string}`[];
+        playerCount = players.length;
       }
 
       hasFetchedOnce.current = true;
