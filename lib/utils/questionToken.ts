@@ -9,6 +9,9 @@ import crypto from 'crypto';
  * and compares the answer server-side.
  */
 
+// 30s window is safe because questions are fetched one at a time.
+// If batching is added later, each question's token must be signed individually
+// at serve time so iat reflects when the player actually sees the question.
 const MAX_ANSWER_TIME_SECONDS = 30;
 
 interface QuestionTokenPayload {

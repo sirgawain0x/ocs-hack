@@ -4,6 +4,7 @@ import { useTopEarners, type LeaderboardViewType } from '@/hooks/useTopEarners';
 import Image from 'next/image';
 import { ASSETS } from '@/lib/config/assets';
 import { Loader2 } from 'lucide-react';
+import { BaseName } from '@/components/identity/BaseName';
 
 interface TopEarnersProps {
   limit?: number;
@@ -30,11 +31,12 @@ export default function TopEarners({ limit = 10, className = '', viewType = 'sco
     if (username) {
       return <span className="text-[#ffffff] text-[12px]">{username.toUpperCase()}</span>;
     }
-
+    
     return (
-      <span className="text-[#ffffff] text-[12px]">
-        {`${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`}
-      </span>
+      <BaseName
+        address={walletAddress as `0x${string}`}
+        className="text-[#ffffff] text-[12px]"
+      />
     );
   };
 

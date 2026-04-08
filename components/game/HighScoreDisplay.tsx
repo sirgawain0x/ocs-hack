@@ -7,6 +7,7 @@ import { usePlayerWinnings } from '@/hooks/usePlayerWinnings';
 import { Badge } from '@/components/ui/badge';
 import { useBaseAccount } from '@/hooks/useBaseAccount';
 import ClaimWinningsButton from '@/components/game/ClaimWinningsButton';
+import { BaseName } from '@/components/identity/BaseName';
 import { Confetti } from '@neoconfetti/react';
 
 interface HighScoreDisplayProps {
@@ -121,7 +122,11 @@ export default function HighScoreDisplay({
     }
     
     if (walletAddress) {
-      return <span>{`${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`}</span>;
+      return (
+        <BaseName
+          address={walletAddress as `0x${string}`}
+        />
+      );
     }
     
     return <span>Unknown Player</span>;

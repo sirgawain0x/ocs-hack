@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
       timeSpent,
       question.timeLimit,
       question.difficulty as DifficultyLevel,
-      0, // streak not tracked server-side per-request; client tracks locally
+      // Streak is not tracked server-side per-request (would require session state).
+      // The streak bonus is small (max +10 points) and the max-score cap on
+      // save-paid-score prevents abuse. Client tracks streak for UI display only.
+      0,
     );
 
     return NextResponse.json({
