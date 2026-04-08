@@ -51,7 +51,7 @@ function BaseAccountProviderWrapper({ children }: { children: ReactNode }) {
       });
     }
   }, []);
-  
+
   return <>{children}</>;
 }
 

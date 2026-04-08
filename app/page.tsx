@@ -13,7 +13,6 @@ import GuestModeEntry from '@/components/game/GuestModeEntry';
 import AudioPlayer from '@/components/game/AudioPlayer';
 import ActivePlayers from '@/components/game/ActivePlayers';
 import type { TriviaQuestion, PlayerModeChoice, GameStartOptions } from '@/types/game';
-import { ScoringSystem } from '@/lib/game/scoring';
 import { useBaseAccount } from '@/hooks/useBaseAccount';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useContractUSDCBalance } from '@/hooks/useContractUSDCBalance';
@@ -71,6 +70,8 @@ function HomePage() {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [completedAsTrial, setCompletedAsTrial] = useState(false);
   const [audioError, setAudioError] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifiedCorrectAnswer, setVerifiedCorrectAnswer] = useState<number | null>(null);
   const timerTriggeredRef = useRef(false);
   const lastGameWasPaidRef = useRef(false);
   const paidScoreSavedRef = useRef(false);
@@ -134,6 +135,7 @@ function HomePage() {
           body: JSON.stringify({
             walletAddress: wallet,
             finalScore,
+            entryToken: entryToken ?? undefined,
           }),
         });
         if (!res.ok) {
@@ -154,6 +156,8 @@ function HomePage() {
     setGameError(null);
     setSelectedAnswer(null);
     setIsAnswered(false);
+    setIsVerifying(false);
+    setVerifiedCorrectAnswer(null);
     setStartTime(Date.now());
     setGameTimeRemaining(10);
     setAudioError(false);
@@ -305,27 +309,40 @@ function HomePage() {
     }
   };
 
-  const handleAnswerSelect = (answerIndex: number) => {
+  const handleAnswerSelect = async (answerIndex: number) => {
     if (isAnswered || !currentQuestion || gameTimeRemaining <= 0) return;
-    
+
+    // Optimistically highlight the selected answer immediately
     setSelectedAnswer(answerIndex);
     setIsAnswered(true);
-    
-    const isCorrect = answerIndex === currentQuestion.correctAnswer;
-    if (isCorrect) {
-      const timeSpentMs = Date.now() - startTime;
-      const timeSpent = Math.round(timeSpentMs / 100) / 10;
-      
-      const pointsEarned = ScoringSystem.calculateQuestionScore(
-        true,
-        timeSpent,
-        currentQuestion.timeLimit,
-        currentQuestion.difficulty,
-        0
-      );
-      
-      setScore(prev => prev + pointsEarned);
-      setTotalScore(prev => prev + pointsEarned);
+    setIsVerifying(true);
+
+    try {
+      const res = await fetch('/api/verify-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionToken: currentQuestion.questionToken,
+          selectedAnswer: answerIndex,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setVerifiedCorrectAnswer(data.correctAnswer);
+        if (data.isCorrect && data.pointsEarned > 0) {
+          setScore(prev => prev + data.pointsEarned);
+          setTotalScore(prev => prev + data.pointsEarned);
+        }
+      } else {
+        // Verification failed (expired token, etc.) — treat as incorrect, no points
+        console.warn('Answer verification failed:', res.status);
+      }
+    } catch (error) {
+      console.error('Answer verification error:', error);
+      // Network error — treat as incorrect, no points
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -340,10 +357,8 @@ function HomePage() {
         if (isTrialGame) {
           setCompletedAsTrial(true);
           try {
-            console.log('🎯 Trial game completed, updating trial status...');
             await incrementTrialGame();
             setIsTrialGame(false);
-            console.log('✅ Trial status updated, new status:', trialStatus);
           } catch (error) {
             console.error('Error updating trial status:', error);
           }
@@ -366,18 +381,6 @@ function HomePage() {
     
     // Round to nearest 0.1 seconds for smoother display
     const roundedRemaining = Math.round(remaining * 10) / 10;
-    
-    // Debug logging for song-specific timing issues
-    if (currentQuestion && Math.abs(remaining - roundedRemaining) > 0.1) {
-      console.log('🎵 Timing debug:', {
-        song: currentQuestion.metadata.songTitle || 'Unknown',
-        currentTime: currentTime.toFixed(2),
-        duration: duration.toFixed(2),
-        audioRemaining: audioRemaining.toFixed(2),
-        roundedRemaining: roundedRemaining.toFixed(2),
-        remaining: remaining.toFixed(2)
-      });
-    }
     
     // Only update if the remaining time has actually changed (to prevent unnecessary re-renders)
     setGameTimeRemaining(prev => {
@@ -407,7 +410,6 @@ function HomePage() {
   }, [currentQuestion, isAnswered]);
 
   const handleAudioError = () => {
-    console.log('Audio failed, trying different question...');
     setAudioError(true);
     setTimeout(() => {
       loadRandomQuestion();
@@ -503,6 +505,15 @@ function HomePage() {
         sessionError={gameSessionError}
         onRoundStart={() => {
           setInMultiplayerLobby(false);
+          // Reset game state to prevent stale values from previous game
+          setGameCompleted(false);
+          setCompletedAsTrial(false);
+          setTotalScore(0);
+          setScore(0);
+          setCurrentRound(1);
+          setQuestionNumberInRound(1);
+          paidScoreSavedRef.current = false;
+          // Start gameplay
           setGameStarted(true);
           loadRandomQuestion();
         }}
@@ -856,11 +867,17 @@ function HomePage() {
                 disabled={isAnswered || gameTimeRemaining <= 0}
                 className={`p-4 rounded-lg text-left transition-colors cursor-pointer ${
                   isAnswered
-                    ? selectedAnswer === index
-                      ? index === currentQuestion.correctAnswer
-                        ? 'bg-green-600 text-white'  // Green if selected AND correct
-                        : 'bg-red-600 text-white'    // Red if selected AND wrong
-                      : 'bg-gray-700 text-gray-400'  // Gray for unselected options
+                    ? isVerifying
+                      ? selectedAnswer === index
+                        ? 'bg-purple-600 text-white animate-pulse'  // Pulsing while verifying
+                        : 'bg-gray-700 text-gray-400'
+                      : selectedAnswer === index
+                        ? verifiedCorrectAnswer === index
+                          ? 'bg-green-600 text-white'  // Green if selected AND correct
+                          : 'bg-red-600 text-white'    // Red if selected AND wrong
+                        : verifiedCorrectAnswer === index
+                          ? 'bg-green-600/50 text-white'  // Dim green to reveal correct answer
+                          : 'bg-gray-700 text-gray-400'  // Gray for unselected options
                     : gameTimeRemaining <= 0
                     ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
                     : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600'
