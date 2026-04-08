@@ -54,7 +54,7 @@ export default function GameEntry({
 }: GameEntryProps) {
   const isPaidMode = playerModeChoice === 'paid_solo' || playerModeChoice === 'paid_multiplayer';
   console.log('GameEntry received playerModeChoice:', playerModeChoice);
-  const { address, universalAddress, isConnected } = useBaseAccount();
+  const { address, universalAddress, isConnected, connect } = useBaseAccount();
   const { trialStatus, isLoading: trialLoading, incrementTrialGame } = useTrialStatus(address || undefined, entryToken || undefined);
   const { getSessionToken, isLoading: sessionLoading, error: sessionError } = useSessionToken();
   const { balance, hasEnoughForEntry, isLoading: balanceLoading, error: balanceError } = useUSDCBalance();
@@ -549,7 +549,7 @@ export default function GameEntry({
                   <SubAccountDisplay showActions={true} />
                 ) : (
                   <div className="text-center">
-                    <SignInWithBaseButton colorScheme="light" />
+                    <SignInWithBaseButton colorScheme="light" onClick={connect} />
                   </div>
                 )}
               </div>
