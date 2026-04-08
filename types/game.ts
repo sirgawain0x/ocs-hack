@@ -19,7 +19,8 @@ export interface TriviaQuestion {
   type: QuestionType;
   question: string;
   options: string[];
-  correctAnswer: number;
+  /** Server-signed token containing the correct answer. Use /api/verify-answer to check. */
+  questionToken: string;
   audioUrl?: string;
   imageUrl?: string;
   difficulty: DifficultyLevel;

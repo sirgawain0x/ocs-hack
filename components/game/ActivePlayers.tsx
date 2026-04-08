@@ -1,9 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-// OnchainKit Avatar component removed - using Base Account instead
-import { base } from 'viem/chains';
-import { Avatar } from '@coinbase/onchainkit/identity';
 import { useActivePlayers, type ActivePlayer } from '@/hooks/useActivePlayers';
 import { useSocialShare } from '@/hooks/useSocialShare';
 import { Share2, Users, Trophy } from 'lucide-react';
@@ -98,16 +95,9 @@ export default function ActivePlayers({
             className="relative"
             onClick={() => handlePlayerClick(player)}
           >
-            <Avatar
-              address={player.isWalletUser ? (player.address as `0x${string}`) : undefined}
-              chain={base}
-              className="w-5 h-5 border-2 border-black rounded-full shadow-sm hover:scale-110 transition-transform duration-200 cursor-pointer"
-              defaultComponent={
-                <div className="w-5 h-5 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {player.username.slice(0, 2).toUpperCase()}
-                </div>
-              }
-            />
+            <div className="w-5 h-5 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-[8px] font-bold border-2 border-black shadow-sm hover:scale-110 transition-transform duration-200 cursor-pointer">
+              {player.username.slice(0, 2).toUpperCase()}
+            </div>
             
           </div>
           

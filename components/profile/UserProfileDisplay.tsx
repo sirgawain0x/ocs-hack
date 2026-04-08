@@ -1,13 +1,11 @@
 'use client';
 
-import { Avatar, Name } from '@coinbase/onchainkit/identity';
-import { base } from 'viem/chains';
 import { useMiniAppProfile } from '@/hooks/useMiniAppProfile';
 import Image from 'next/image';
 
 interface UserProfileDisplayProps {
   /**
-   * Ethereum address for OnchainKit fallback (Basename resolution)
+   * Ethereum address for fallback display
    * Required when not in Mini App context
    */
   address?: `0x${string}`;
@@ -52,7 +50,7 @@ const sizeMap = {
 /**
  * Reusable component for displaying user profile information
  * Prioritizes Mini App profile data (displayName, username, pfpUrl)
- * Falls back to OnchainKit Avatar and Name components for Basename resolution
+ * Falls back to gradient avatar and truncated address
  */
 export default function UserProfileDisplay({
   address,
@@ -90,17 +88,9 @@ export default function UserProfileDisplay({
               />
             </div>
           ) : address ? (
-            // Fallback to OnchainKit Avatar for Basename/ENS resolution
-            <Avatar
-              address={address}
-              chain={base}
-              className={`${avatarSizeClass} ${avatarClassName}`}
-              defaultComponent={
-                <div className={`${avatarSizeClass} bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold`}>
-                  {displayName ? displayName.slice(0, 2).toUpperCase() : address.slice(2, 4).toUpperCase()}
-                </div>
-              }
-            />
+            <div className={`${avatarSizeClass} bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold ${avatarClassName}`}>
+              {displayName ? displayName.slice(0, 2).toUpperCase() : address.slice(2, 4).toUpperCase()}
+            </div>
           ) : (
             // Fallback avatar when no address or profile
             <div className={`${avatarSizeClass} bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold ${avatarClassName}`}>
@@ -117,12 +107,7 @@ export default function UserProfileDisplay({
             // Use Mini App display name or username
             <span className={nameClassName}>{displayName}</span>
           ) : address ? (
-            // Fallback to OnchainKit Name for Basename resolution
-            <Name
-              address={address}
-              chain={base}
-              className={nameClassName}
-            />
+            <span className={nameClassName}>{`${address.slice(0, 6)}…${address.slice(-4)}`}</span>
           ) : (
             // Fallback text
             <span className={nameClassName}>Anonymous</span>

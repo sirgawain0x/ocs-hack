@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// OnchainKit Avatar component removed - using Base Account instead
-import { base } from 'viem/chains';
-import { Avatar } from '@coinbase/onchainkit/identity';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -106,16 +103,9 @@ export default function SocialProfileViewer({
           {/* Player Avatar and Basic Info */}
           <div className="text-center space-y-4">
             <div className="relative inline-block">
-              <Avatar
-                address={player.isWalletUser ? (player.address as `0x${string}`) : undefined}
-                chain={base}
-                className="w-20 h-20 border-4 border-gray-700 rounded-full"
-                defaultComponent={
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                    {player.username.slice(0, 2).toUpperCase()}
-                  </div>
-                }
-              />
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-2xl font-bold border-4 border-gray-700">
+                {player.username.slice(0, 2).toUpperCase()}
+              </div>
               <div className="absolute -bottom-2 -right-2">
                 <Badge className={`${getRankColor(getPlayerRank())} text-white border-0`}>
                   {getPlayerRank()}

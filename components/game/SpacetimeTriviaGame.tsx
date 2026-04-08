@@ -10,7 +10,6 @@ import GameStats from '@/components/game/GameStats';
 import Timer from '@/components/game/Timer';
 import type { GameState, DifficultyLevel, QuestionType, TriviaQuestion as TQ } from '@/types/game';
 import { Music, Trophy, Clock, Target, Play, ArrowLeft } from 'lucide-react';
-import { ScoringSystem } from '@/lib/game/scoring';
 import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { SessionManager } from '@/lib/utils/sessionManager';
 import GameScoreCard from './GameScoreCard';
@@ -143,31 +142,41 @@ export default function SpacetimeTriviaGame({ className = '', onWalletConnect, o
     }
   }, [startRound]);
 
-  const handleAnswer = useCallback((selectedAnswer: number, timeSpent: number) => {
+  const handleAnswer = useCallback(async (selectedAnswer: number, timeSpent: number) => {
     const currentQ = gameState.questions[gameState.currentQuestion];
     if (!currentQ) return;
 
-    const isCorrect = selectedAnswer === currentQ.correctAnswer;
+    let isCorrect = false;
+    let pointsEarned = 0;
+    let verifiedTimeSpent = timeSpent;
 
-    let streak = 0;
-    for (let i = gameState.answers.length - 1; i >= 0; i--) {
-      if (gameState.answers[i]!.isCorrect) streak++;
-      else break;
+    try {
+      const res = await fetch('/api/verify-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionToken: currentQ.questionToken,
+          selectedAnswer,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        isCorrect = data.isCorrect;
+        pointsEarned = data.pointsEarned;
+        verifiedTimeSpent = data.timeSpent;
+      } else {
+        console.error('Failed to verify answer:', res.statusText);
+      }
+    } catch (err) {
+      console.error('Error verifying answer:', err);
     }
-
-    const pointsEarned = ScoringSystem.calculateQuestionScore(
-      isCorrect,
-      timeSpent,
-      currentQ.timeLimit,
-      currentQ.difficulty,
-      streak
-    );
 
     const newAnswer = {
       questionId: currentQ.id,
       selectedAnswer,
       isCorrect,
-      timeSpent,
+      timeSpent: verifiedTimeSpent,
       pointsEarned,
     };
 

@@ -25,14 +25,10 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-        port: "3845",
-        pathname: "/assets/**",
-      },
-      // Add your production asset domain here
-      // Example for CDN:
+      // Local asset server — development only
+      ...(process.env.NODE_ENV !== 'production'
+        ? [{ protocol: "http" as const, hostname: "localhost", port: "3845", pathname: "/assets/**" }]
+        : []),
       {
          protocol: "https",
          hostname: "beatme.creativeplatform.xyz",
