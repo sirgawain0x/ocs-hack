@@ -133,6 +133,20 @@ export const useTrialStatus = (walletAddress?: string, entryToken?: string | nul
               throw new Error('Token validation failed');
             }
           } else {
+            // Check localStorage first for persisted trial completion
+            if (SessionManager.isTrialCompleted()) {
+              const gamesPlayed = SessionManager.getTrialGamesPlayed();
+              setTrialStatus({
+                gamesPlayed: Math.max(gamesPlayed, 1),
+                gamesRemaining: 0,
+                isTrialActive: false,
+                requiresWallet: true,
+                canJoinPrizePool: true,
+                playerType: 'trial'
+              });
+              setIsLoading(false);
+              return;
+            }
             // Check anonymous session trial status
             const sessionId = SessionManager.getSessionId();
             const response = await fetch(`/api/trial-status?session=${sessionId}`);
@@ -284,6 +298,10 @@ export const useTrialStatus = (walletAddress?: string, entryToken?: string | nul
           const updatedGamesPlayed = prev.gamesPlayed + 1;
           const updatedGamesRemaining = Math.max(0, prev.gamesRemaining - 1);
           const isTrialActive = updatedGamesRemaining > 0;
+          // Persist trial completion to localStorage
+          if (!isTrialActive) {
+            SessionManager.setTrialCompleted();
+          }
           return {
             ...prev,
             gamesPlayed: updatedGamesPlayed,
