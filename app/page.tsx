@@ -9,7 +9,7 @@ import { formatTimeRemainingText } from '@/lib/utils/timeUtils';
 import GameEntry from '@/components/game/GameEntry';
 import MultiplayerLobby from '@/components/game/MultiplayerLobby';
 import GuestModeEntry from '@/components/game/GuestModeEntry';
-import GamePayment from '@/components/game/GamePayment';
+// GamePayment view removed — no longer needed in the flow
 import AudioPlayer from '@/components/game/AudioPlayer';
 import ActivePlayers from '@/components/game/ActivePlayers';
 import type { TriviaQuestion, PlayerModeChoice, GameStartOptions } from '@/types/game';
@@ -20,12 +20,10 @@ import { useContractUSDCBalance } from '@/hooks/useContractUSDCBalance';
 import GameTitle from '@/components/ui/GameTitle';
 import HighScoreDisplay from '@/components/game/HighScoreDisplay';
 import TopEarners from '@/components/leaderboard/TopEarners';
-import { Trophy } from 'lucide-react';
 // OnchainKit imports removed - using Base Account instead
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { isLobbySessionStatus } from '@/lib/utils/gameSessionStatus';
-import BaseAccountButton from '@/components/base-account/BaseAccountButton';
 import { ENTRY_FEE_USDC } from '@/lib/blockchain/contracts';
 
 function HomePage() {
@@ -47,7 +45,6 @@ function HomePage() {
   } = useGameSession();
   const [showGameEntry, setShowGameEntry] = useState(false);
   const [showGuestMode, setShowGuestMode] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
   const [playerModeChoice, setPlayerModeChoice] = useState<PlayerModeChoice>('trial');
   const [gameStarted, setGameStarted] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
@@ -242,19 +239,7 @@ function HomePage() {
   };
 
   const handleWalletConnect = () => {
-    setShowGameEntry(false);
-    setShowPayment(true);
-  };
-
-  const handlePaymentComplete = () => {
-    setShowPayment(false);
-    setIsTrialGame(false);
-    setGameStarted(true);
-    loadRandomQuestion();
-  };
-
-  const handlePaymentBack = () => {
-    setShowPayment(false);
+    // Payment view removed — go straight to game entry with paid modes
     setShowGameEntry(true);
   };
 
@@ -306,7 +291,6 @@ function HomePage() {
       setJoinGameStartError(null);
       setShowGameEntry(false);
       setShowGuestMode(false);
-      setShowPayment(false);
       setGameStarted(false);
       setIsGuestMode(false);
       setGameCompleted(false);
@@ -487,16 +471,6 @@ function HomePage() {
     return `${totalPlayers} PLAYERS ARE PLAYING`;
   };
 
-  // Show payment screen
-  if (showPayment) {
-    return (
-      <GamePayment 
-        onPaymentComplete={handlePaymentComplete}
-        onBack={handlePaymentBack}
-      />
-    );
-  }
-
   // Show guest mode entry
   if (showGuestMode) {
     return (
@@ -511,36 +485,13 @@ function HomePage() {
     );
   }
 
-  // Show trial completion screen if user has used all free games (but not if a game just finished)
-  if (trialStatus.requiresWallet && !gameCompleted) {
-    return (
-      <div className="bg-[#000000] min-h-screen w-full flex items-center justify-center px-4">
-        <div className="w-full max-w-[390px] md:max-w-[428px]">
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-lg border-0 p-8 text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
-              <Trophy className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              Trial Games Complete!
-            </h1>
-            <p className="text-gray-600 text-lg mb-4">
-              {`You've played ${trialStatus.gamesPlayed} free games. Connect your wallet to continue playing and earn rewards!`}
-            </p>
-            {/* Base Account Wallet Component */}
-            <div className="flex justify-center">
-              <BaseAccountButton
-                className="!bg-gradient-to-r !from-purple-500 !to-pink-500 hover:!from-purple-600 hover:!to-pink-600 !text-white !px-8 !py-3 !rounded-lg !text-lg !font-semibold"
-                onConnect={() => setShowPayment(true)}
-              />
-            </div>
-            <p className="text-sm text-gray-500 mt-4">
-              Connect your wallet to continue playing and earn rewards!
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // When trial is exhausted, automatically show game entry with paid modes
+  // (Trial Games Complete screen has been removed — users go straight to game entry)
+  useEffect(() => {
+    if (trialStatus.requiresWallet && !gameCompleted && !gameStarted && !showGameEntry && !showGuestMode && !inMultiplayerLobby) {
+      setShowGameEntry(true);
+    }
+  }, [trialStatus.requiresWallet, gameCompleted, gameStarted, showGameEntry, showGuestMode, inMultiplayerLobby]);
 
   // Paid multiplayer lobby (memory session)
   if (inMultiplayerLobby) {
