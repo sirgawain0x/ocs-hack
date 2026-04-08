@@ -298,10 +298,6 @@ export const useTrialStatus = (walletAddress?: string, entryToken?: string | nul
           const updatedGamesPlayed = prev.gamesPlayed + 1;
           const updatedGamesRemaining = Math.max(0, prev.gamesRemaining - 1);
           const isTrialActive = updatedGamesRemaining > 0;
-          // Persist trial completion to localStorage
-          if (!isTrialActive) {
-            SessionManager.setTrialCompleted();
-          }
           return {
             ...prev,
             gamesPlayed: updatedGamesPlayed,
@@ -345,6 +341,13 @@ export const useTrialStatus = (walletAddress?: string, entryToken?: string | nul
       });
     }
   };
+
+  // Persist trial completion to localStorage as a side effect (outside state updaters)
+  useEffect(() => {
+    if (!trialStatus.isTrialActive && trialStatus.gamesPlayed > 0) {
+      SessionManager.setTrialCompleted();
+    }
+  }, [trialStatus.isTrialActive, trialStatus.gamesPlayed]);
 
   return { trialStatus, isLoading, incrementTrialGame };
 };

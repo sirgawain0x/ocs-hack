@@ -305,10 +305,13 @@ export default function SpacetimeTriviaGame({ className = '', onWalletConnect, o
   };
 
   // When trial is exhausted, navigate back to game entry instead of showing a blocking screen
-  if (trialStatus.requiresWallet && gameState.gameStatus === 'waiting') {
-    if (onBack) {
+  useEffect(() => {
+    if (trialStatus.requiresWallet && gameState.gameStatus === 'waiting' && onBack) {
       onBack();
     }
+  }, [trialStatus.requiresWallet, gameState.gameStatus, onBack]);
+
+  if (trialStatus.requiresWallet && gameState.gameStatus === 'waiting') {
     return null;
   }
 
