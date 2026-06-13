@@ -4,7 +4,7 @@
  */
 
 import type { OneClickBuyOptions, OneClickBuyResult } from '@/types/onramp';
-import { openFundingUrl } from '@/lib/utils/openFundingUrl';
+import { openFundingUrl, openBlankFundingPopup, navigateFundingTarget, closeFundingPopup } from '@/lib/utils/openFundingUrl';
 
 export interface FundingUrlParams {
   walletAddress: string;
@@ -80,7 +80,7 @@ export async function generateEthBuyQuoteUrl(
   });
 }
 
-/** Open ETH onramp: buy-quote first, then session-token URL fallback. */
+/** Open ETH onramp: fresh buy-quote first, then session-token fallbacks (blank popup pattern). */
 export async function openEthGasFunding(options: {
   walletAddress: string;
   getSessionToken: (address: string) => Promise<string>;
@@ -88,19 +88,25 @@ export async function openEthGasFunding(options: {
 }): Promise<{ opened: boolean; error?: string }> {
   const { walletAddress, getSessionToken, cachedUrl } = options;
 
-  if (cachedUrl && openFundingUrl(cachedUrl)) {
-    return { opened: true };
-  }
+  // Preserve user-gesture context for async quote fetch (avoids popup blockers on desktop)
+  const popup = openBlankFundingPopup();
 
+  // 1. Fresh buy quote (preferred — new quote every tap)
   try {
     const quote = await generateEthBuyQuoteUrl(walletAddress);
-    if (quote.url && openFundingUrl(quote.url)) {
+    if (quote.url && navigateFundingTarget(popup, quote.url)) {
       return { opened: true };
     }
   } catch (quoteErr) {
-    console.warn('ETH buy-quote failed, trying session token:', quoteErr);
+    console.warn('ETH buy-quote failed, trying session token fallback:', quoteErr);
   }
 
+  // 2. Cached session-token URL from page load
+  if (cachedUrl && navigateFundingTarget(popup, cachedUrl)) {
+    return { opened: true };
+  }
+
+  // 3. Fresh session token
   try {
     await clearBrowserCache();
     const sessionToken = await getSessionToken(walletAddress);
@@ -110,11 +116,13 @@ export async function openEthGasFunding(options: {
       asset: 'ETH',
       presetFiatAmount: '5',
     });
-    if (openFundingUrl(url)) {
+    if (navigateFundingTarget(popup, url)) {
       return { opened: true };
     }
+    closeFundingPopup(popup);
     return { opened: false, error: 'Could not open the funding page. Try the Base Account link below.' };
   } catch (err) {
+    closeFundingPopup(popup);
     const message = err instanceof Error ? err.message : 'Failed to start ETH purchase';
     return { opened: false, error: message };
   }
