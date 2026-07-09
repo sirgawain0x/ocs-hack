@@ -51,11 +51,11 @@ export function usePlayerWinnings() {
           data: counterData,
         }, 'latest'],
       });
-      const [sessionCounter] = decodeFunctionResult({
+      const sessionCounter = decodeFunctionResult({
         abi: TRIVIA_ABI,
         functionName: 'sessionCounter',
         data: counterResult as `0x${string}`,
-      }) as unknown as readonly [bigint];
+      }) as unknown as bigint;
 
       // Then read getSessionInfo(sessionCounter)
       const sessionData = encodeFunctionData({
@@ -102,8 +102,8 @@ export function usePlayerWinnings() {
         abi: TRIVIA_ABI,
         functionName: 'getPlayerScore',
         data: result as `0x${string}`,
-      }) as unknown as readonly [bigint];
-      setPlayerScore(decoded[0] as unknown as bigint);
+      }) as unknown as bigint;
+      setPlayerScore(decoded);
     } catch (error) {
       console.error('Error fetching player score:', error);
     }
