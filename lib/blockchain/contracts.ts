@@ -17,7 +17,9 @@ export const USDC_CONTRACT_ADDRESS =
 // Use environment variable NEXT_PUBLIC_TRIVIA_CONTRACT_ADDRESS if set, otherwise default to v5 mainnet.
 export const TRIVIA_CONTRACT_ADDRESS =
   (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_TRIVIA_CONTRACT_ADDRESS) ||
-  '0x76B356d0DCAe65942751A8F2Da2644a83d7f165f'; // Base Mainnet v5 default
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_NETWORK === 'sepolia'
+    ? '0x5B24440D7702BBc79BCAc7271C8EdE2a578aD0fB'
+    : '0x76B356d0DCAe65942751A8F2Da2644a83d7f165f'); // Base Mainnet v5 default
 
 // Contract ABI for TriviaBattle.sol contract (matches the actual deployed contract)
 // NOTE: This is a session-based contract, not game-based. It does NOT have:
