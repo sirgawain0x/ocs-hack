@@ -111,7 +111,7 @@ export function usePlayerWinnings() {
 
   // Calculate winnings based on score and prize pool
   const calculateWinnings = useCallback(async () => {
-    if (!address || !isConnected || !sessionInfo || !playerScore) {
+    if (!address || !isConnected || sessionInfo === null || playerScore === null || playerScore === undefined) {
       return;
     }
 
