@@ -596,7 +596,9 @@ function syncScoresFromRankingsApi(
     const httpClient = new cre.capabilities.HTTPClient()
     const resp = httpClient
       .sendRequest(nodeRuntime, {
-        url: apiUrl,
+        // Target the specific session being distributed — after weekly rollover
+        // the live session on-chain is no longer the one we are paying out.
+        url: `${apiUrl}${apiUrl.includes("?") ? "&" : "?"}sessionId=${sessionId.toString()}`,
         method: "GET",
         headers: { Accept: "application/json" },
       })
@@ -609,7 +611,18 @@ function syncScoresFromRankingsApi(
     return new TextDecoder().decode(resp.body ?? new Uint8Array())
   }
 
-  const body = runtime.runInNodeMode(fetchRankings, consensusIdenticalAggregation<string>())().result()
+  let body = ""
+  try {
+    body = runtime.runInNodeMode(fetchRankings, consensusIdenticalAggregation<string>())().result()
+  } catch (error) {
+    // A consensus failure here (e.g. non-deterministic API payload, mixed
+    // 200/500 responses across nodes) must NOT kill the whole workflow run.
+    // Log it and fall back to the other score sources below.
+    runtime.log(
+      `Rankings API consensus failed: ${error instanceof Error ? error.message : String(error)}`
+    )
+    return { synced: false, addresses: [], scores: [] }
+  }
   if (!body) return { synced: false, addresses: [], scores: [] }
 
   let parsed: { players?: { address: string; score: number }[] }
@@ -766,7 +779,17 @@ function syncScoresFromApp(runtime: Runtime<Config>, sessionId: bigint): boolean
     return status >= 200 && status < 300 ? 1 : 0
   }
 
-  const result = runtime.runInNodeMode(syncScore, consensusIdenticalAggregation<number>())().result()
+  let result = 0
+  try {
+    result = runtime.runInNodeMode(syncScore, consensusIdenticalAggregation<number>())().result()
+  } catch (error) {
+    // Don't let a consensus failure on the HTTP sync kill the run — the
+    // on-chain score read fallback still gets a chance below.
+    runtime.log(
+      `Score sync consensus failed: ${error instanceof Error ? error.message : String(error)}`
+    )
+    return false
+  }
   return result >= 1
 }
 
